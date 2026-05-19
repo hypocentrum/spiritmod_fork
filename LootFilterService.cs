@@ -38,14 +38,14 @@ namespace SpiritMod
 
         // Token: 0x17000020 RID: 32
         // (get) Token: 0x060000C5 RID: 197 RVA: 0x0000A693 File Offset: 0x00008893
-        public static Il2CppSystem.Collections.Generic.Dictionary<string, LootFilterEntry> Items
+        public static System.Collections.Generic.Dictionary<string, LootFilterEntry> Items
         {
             get
             {
-                Il2CppSystem.Collections.Generic.Dictionary<string, LootFilterEntry> result = new Il2CppSystem.Collections.Generic.Dictionary<string, LootFilterEntry>();
-                foreach(var kvp in LootFilterService._data.Items)
-                    result.Add(kvp.Key, kvp.Value);
-                return result;
+                //Il2CppSystem.Collections.Generic.Dictionary<string, LootFilterEntry> result = new Il2CppSystem.Collections.Generic.Dictionary<string, LootFilterEntry>();
+                //foreach(var kvp in LootFilterService._data.Items)
+                //    result.Add(kvp.Key, kvp.Value);
+                return LootFilterService._data.Items;
             }
         }
 

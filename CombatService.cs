@@ -481,7 +481,8 @@ namespace SpiritMod
                                             SummoningComponent summoning = baseUnitController.Summoning;
                                             if ((summoning != null && summoning.IsMounting) || !SummonService.HasAlivePrimarySummon(player))
                                             {
-                                                goto IL_1FB;
+                                                //goto IL_1FB;
+                                                continue;
                                             }
                                         }
                                         if ((!CombatService.IsSummonSkill(config) || !SummonService.IsSlotSatisfied(player, cfg, i)) && (!CombatService.IsManagedBuffSlot(cfg, i, config) || !CombatService.ShouldSkipBuffCast(player, anySkill, cfg, i)))
@@ -507,7 +508,7 @@ namespace SpiritMod
                         }
                     }
                 }
-            IL_1FB:;
+            //IL_1FB:;
             }
             if (CombatService._candidates.Count == 0)
             {
@@ -537,10 +538,7 @@ namespace SpiritMod
                 {
                     if (baseUnitController2 == null)
                     {
-                        DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(14, 1);
-                        defaultInterpolatedStringHandler.AppendLiteral("no_target:slot");
-                        defaultInterpolatedStringHandler.AppendFormatted<int>(skillCandidate.Slot);
-                        CombatTelemetryService.RecordBlocked(defaultInterpolatedStringHandler.ToStringAndClear());
+                        CombatTelemetryService.RecordBlocked($"no_target:slot{skillCandidate.Slot}");
                         player.SkillReady = null;
                         continue;
                     }
@@ -550,10 +548,7 @@ namespace SpiritMod
                 {
                     if (baseUnitController2 == null)
                     {
-                        DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(21, 1);
-                        defaultInterpolatedStringHandler.AppendLiteral("no_ground_target:slot");
-                        defaultInterpolatedStringHandler.AppendFormatted<int>(skillCandidate.Slot);
-                        CombatTelemetryService.RecordBlocked(defaultInterpolatedStringHandler.ToStringAndClear());
+                        CombatTelemetryService.RecordBlocked($"no_ground_target:slot{skillCandidate.Slot}");
                         player.SkillReady = null;
                         continue;
                     }
@@ -568,16 +563,13 @@ namespace SpiritMod
                 string detail;
                 if ((detail = ((config2 != null) ? config2.DisplayName : null)) == null)
                 {
-                    DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(4, 1);
-                    defaultInterpolatedStringHandler.AppendLiteral("slot");
-                    defaultInterpolatedStringHandler.AppendFormatted<int>(skillCandidate.Slot);
-                    detail = defaultInterpolatedStringHandler.ToStringAndClear();
+                    detail = $"slot{skillCandidate.Slot}";
                 }
                 CombatTelemetryService.RecordSent(detail);
                 CombatService.RecordSkillCastTime(skillCandidate.Slot);
-                status.SkillsCastCount++;
                 if (status != null)
                 {
+                    status.SkillsCastCount++;
                     status.SkillRequestsSent++;
                 }
                 return true;

@@ -462,6 +462,8 @@
 		<Compile Include="PlayerSaveAssignSkillPatch.cs" />
 		<Compile Include="RollingLog.cs" />
 		<Compile Include="SellOverride.cs" />
+		<Compile Include="ServerDumpService.cs" />
+		<Compile Include="ServerListConfigService.cs" />
 		<Compile Include="SkillDumpService.cs" />
 		<Compile Include="SkillSlotInfo.cs" />
 		<Compile Include="States\CombatState.cs" />

@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Il2Cpp;
+using Il2CppSystem.Data;
 using MelonLoader;
+using System;
 using UnityEngine;
 
 [assembly: MelonInfo(typeof(SpiritMod.Core), "SpiritMod", "2.1.0", "Fariz", null)]
@@ -66,7 +68,12 @@ namespace SpiritMod
 				ModUI.Toggle();
 				base.LoggerInstance.Msg("Menu: " + (ModUI.Visible ? "VISIBLE" : "HIDDEN"));
 			}
-		}
+            if (Input.GetKeyDown(KeyCode.F8))
+            {
+				ServerDumpService.DebugUILogin();
+				ServerListConfigService.RefreshAndSave();
+            }
+        }
 
 		// Token: 0x04000002 RID: 2
 		public const string Version = "2.1.0";

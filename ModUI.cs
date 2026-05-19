@@ -272,7 +272,7 @@ namespace SpiritMod
 			num += 35f;
 			if (ModUI._showServerDropdown)
 			{
-				foreach (string text3 in AutoLoginService.ServerNames)
+				foreach (string text3 in AutoLoginService.GetServerNames())
 				{
 					string text4 = string.Equals(text3, config.AutoLoginServerName, StringComparison.OrdinalIgnoreCase) ? ("▸ " + text3) : ("   " + text3);
 					if (GUI.Button(new Rect(20f, num, 260f, 25f), text4))
@@ -332,7 +332,7 @@ namespace SpiritMod
 			num += 35f;
 			if (ModUI._showServerDropdown)
 			{
-				num += (float)(AutoLoginService.ServerNames.Length * 28);
+				num += (float)(AutoLoginService.GetServerNames().Length * 28);
 			}
 			num += 35f;
 			if (!string.IsNullOrEmpty(AutoLoginService.StatusMessage))
@@ -1016,7 +1016,7 @@ namespace SpiritMod
 			float num4 = 400f;
 			List<LootFilterEntry> list = new List<LootFilterEntry>();
 			string text2 = (ModUI._filterSearch ?? "").Trim();
-			foreach (Il2CppSystem.Collections.Generic.KeyValuePair<string, LootFilterEntry> keyValuePair in LootFilterService.Items)
+			foreach (System.Collections.Generic.KeyValuePair<string, LootFilterEntry> keyValuePair in LootFilterService.Items)
 			{
 				if (text2.Length <= 0 || keyValuePair.Key.IndexOf(text2, StringComparison.OrdinalIgnoreCase) >= 0)
 				{

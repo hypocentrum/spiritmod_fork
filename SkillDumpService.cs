@@ -134,15 +134,15 @@ namespace SpiritMod
                             for (int index3 = 0; index3 < 13; ++index3)
                                 stringBuilder.Append(",");
                         }
-                        stringBuilder.Append(cfg == null && CombatService.IsBuffSkill(cfg));
+                        stringBuilder.Append(cfg != null && CombatService.IsBuffSkill(cfg));
                         stringBuilder.Append(",");
-                        stringBuilder.Append(cfg == null && CombatService.IsSummonSkill(cfg));
+                        stringBuilder.Append(cfg != null && CombatService.IsSummonSkill(cfg));
                         stringBuilder.Append(",");
-                        stringBuilder.Append(cfg == null && CombatService.IsBondSkill(cfg));
+                        stringBuilder.Append(cfg != null && CombatService.IsBondSkill(cfg));
                         stringBuilder.Append(",");
-                        stringBuilder.Append(cfg == null && CombatService.IsMountSkill(cfg));
+                        stringBuilder.Append(cfg != null && CombatService.IsMountSkill(cfg));
                         stringBuilder.Append(",");
-                        stringBuilder.Append(cfg == null && CombatService.IsPermanentBuff(cfg));
+                        stringBuilder.Append(cfg != null && CombatService.IsPermanentBuff(cfg));
                         stringBuilder.Append(",");
                         stringBuilder.Append(SkillDumpService.Esc(SkillDumpService.FormatStatusList(cfg?.StatusEffects, skillState != null ? skillState.Level : 1)));
                         stringBuilder.Append(",");
