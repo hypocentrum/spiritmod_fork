@@ -30,7 +30,8 @@ namespace SpiritMod
 				if (list2 != null)
 				{
 					GameCache.Skills.Update(list2);
-					MelonLogger.Msg("[GameCache] Skills cache refreshed after AssignSkill.");
+                    CombatService.ForceRefreshSkillInfos();
+                    MelonLogger.Msg("[GameCache] Skills cache refreshed after AssignSkill.");
 				}
 			}
 			catch (Exception ex)

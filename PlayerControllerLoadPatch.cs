@@ -43,12 +43,9 @@ namespace SpiritMod
 					if (list2 != null)
 					{
 						GameCache.Skills.Update(list2);
-						DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(35, 1);
-						defaultInterpolatedStringHandler.AppendLiteral("[GameCache] Skills cached (");
-						defaultInterpolatedStringHandler.AppendFormatted<int>(list2.Count);
-						defaultInterpolatedStringHandler.AppendLiteral(" slots).");
-						MelonLogger.Msg(defaultInterpolatedStringHandler.ToStringAndClear());
-					}
+                        CombatService.ForceRefreshSkillInfos();
+                        MelonLogger.Msg($"[GameCache] Skills cached ({list2.Count} slots).");
+                    }
 				}
 			}
 			catch (Exception ex)

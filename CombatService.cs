@@ -196,42 +196,34 @@ namespace SpiritMod
         // Token: 0x0600003F RID: 63 RVA: 0x000033C4 File Offset: 0x000015C4
         public static System.Collections.Generic.List<SkillData> GetAssignedSkillList(PlayerController player)
         {
-            System.Collections.Generic.List<SkillData> result = new System.Collections.Generic.List<SkillData>();
+            var result = new System.Collections.Generic.List<SkillData>();
+
             try
             {
-                PlayerSave save = player.Save;
-                if (save == null)
+                if (player == null)
+                    player = GameStateService.Player;
+
+                if (player == null || player.Save == null || player.Save.Data == null)
+                    return result;
+
+                var skills = player.Save.Data.Skills;
+
+                if (skills == null || skills.Assigned == null)
+                    return result;
+
+                for (int i = 0; i < skills.Assigned.Count; i++)
                 {
-                    result = null;
-                }
-                else
-                {
-                    CharacterData data = save.Data;
-                    if (data == null)
-                    {
-                        result = null;
-                    }
-                    else
-                    {
-                        SkillSystemData skills = data.Skills;
-                        if (skills == null)
-                        {
-                            result = null;
-                        }
-                        else
-                        {
-                            foreach (SkillData skillData in skills.Assigned)
-                            {
-                                result.Add(skillData);
-                            }
-                        }
-                    }
+                    SkillData skill = skills.Assigned[i];
+
+                    if (skill != null)
+                        result.Add(skill);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                result = null;
+                MelonLogger.Warning("[Combat] GetAssignedSkillList failed: " + ex.Message);
             }
+
             return result;
         }
 
