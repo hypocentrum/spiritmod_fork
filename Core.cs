@@ -70,12 +70,21 @@ namespace SpiritMod
 			}
             if (Input.GetKeyDown(KeyCode.F8))
             {
-				ServerDumpService.DebugUILogin();
-				ServerListConfigService.RefreshAndSave();
+                //ServerDumpService.DebugUILogin();
+                //ServerListConfigService.RefreshAndSave();
             }
         }
+        public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+        {
+            GameCache.InvalidateAll();
+            GameStateService.InvalidateAll();
 
-		// Token: 0x04000002 RID: 2
-		public const string Version = "2.1.0";
+            CombatService.ForceRefreshSkillInfos();
+
+            MelonLogger.Msg("[Core] Scene loaded, caches invalidated: " + sceneName);
+        }
+
+        // Token: 0x04000002 RID: 2
+        public const string Version = "2.1.0";
 	}
 }

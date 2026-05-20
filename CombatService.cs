@@ -306,71 +306,52 @@ namespace SpiritMod
         }
 
         // Token: 0x06000046 RID: 70 RVA: 0x00003568 File Offset: 0x00001768
-        public static bool IsBuffAlreadyApplied(PlayerController player, SkillState skillState)
+        public static bool IsBuffAlreadyApplied(
+    PlayerController player,
+    SkillState skillState)
         {
-            bool result;
-            try
-            {
-                StatusComponent status = player.Cast<BaseUnitController>().Status;
-                if (status == null)
-                {
-                    result = false;
-                }
-                else
-                {
-                    Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> effectDisplays_C = status.EffectsDictionary;
-                    if (effectDisplays_C == null)
-                    {
-                        result = false;
-                    }
-                    else
-                    {
-                        SkillConfig config = skillState.Config;
-                        if (config == null)
-                        {
-                            result = false;
-                        }
-                        else if (CombatService.AnyEffectPresent(effectDisplays_C, config.StatusEffects))
-                        {
-                            result = true;
-                        }
-                        else if (CombatService.AnyEffectPresent(effectDisplays_C, config.SelfStatusEffects))
-                        {
-                            result = true;
-                        }
-                        else
-                        {
-                            result = false;
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                result = false;
-            }
-            return result;
+            return TryGetBuffRemainingSeconds(
+                player,
+                skillState,
+                out _
+            );
         }
-
         // Token: 0x06000047 RID: 71 RVA: 0x000035F0 File Offset: 0x000017F0
-        private static bool AnyEffectPresent(Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays, Il2CppSystem.Collections.Generic.List<SkillStatus> effects)
+        private static bool AnyEffectPresent(
+    Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays,
+    Il2CppSystem.Collections.Generic.List<SkillStatus> effects)
         {
-            if (effects == null || effects.Count == 0)
-            {
+            if (displays == null || effects == null || effects.Count == 0)
                 return false;
-            }
+
             for (int i = 0; i < effects.Count; i++)
             {
-                SkillStatus skillStatus = effects[i];
-                if (skillStatus != null)
+                SkillStatus effect = effects[i];
+
+                if (effect == null)
+                    continue;
+
+                string id = effect.Id;
+
+                if (string.IsNullOrEmpty(id))
+                    continue;
+
+                foreach (var pair in displays)
                 {
-                    string id = skillStatus.Id;
-                    if (!string.IsNullOrEmpty(id) && displays.ContainsKey(id))
+                    string activeId = pair.key?.ToString() ?? "";
+
+                    if (string.IsNullOrEmpty(activeId))
+                        continue;
+
+                    if (activeId.Equals(id, StringComparison.OrdinalIgnoreCase) ||
+                        activeId.Contains(id) ||
+                        id.Contains(activeId))
                     {
                         return true;
                     }
                 }
             }
+
             return false;
         }
 
@@ -768,124 +749,179 @@ namespace SpiritMod
         }
 
         // Token: 0x06000056 RID: 86 RVA: 0x00003F64 File Offset: 0x00002164
-        private static int GetBuffPriorityBoost(PlayerController player, BotConfig cfg, int slot, SkillState skillState)
+        private static int GetBuffPriorityBoost(
+    PlayerController player,
+    BotConfig cfg,
+    int slot,
+    SkillState skillState)
         {
-            if (cfg == null || skillState == null)
-            {
+            if (cfg == null || !cfg.EnableBuffMaintenance || skillState == null)
                 return 0;
-            }
+
+            cfg.EnsureArrays();
+
+            if (slot < 0 || slot >= cfg.EnabledBuffSlots.Length)
+                return 0;
+
+            if (!cfg.EnabledBuffSlots[slot])
+                return 0;
+
             SkillConfig config = skillState.Config;
+
             if (!CombatService.IsManagedBuffSlot(cfg, slot, config))
-            {
                 return 0;
-            }
-            float num;
-            bool flag = CombatService.TryGetBuffRemainingSeconds(player, skillState, out num);
+
+            float remaining;
+            bool active = CombatService.TryGetBuffRemainingSeconds(
+                player,
+                skillState,
+                out remaining
+            );
+
             if (CombatService.IsPermanentBuff(config))
-            {
-                if (!flag)
-                {
-                    return 220;
-                }
-                return 0;
-            }
-            else
-            {
-                if (!flag)
-                {
-                    return 220;
-                }
-                float buffRefreshLeadSeconds = CombatService.GetBuffRefreshLeadSeconds(cfg, slot);
-                if (num <= buffRefreshLeadSeconds)
-                {
-                    return 180 + Mathf.Clamp((int)((buffRefreshLeadSeconds - num) * 10f), 0, 40);
-                }
-                return 0;
-            }
+                return active ? 0 : 220;
+
+            if (!active)
+                return 220;
+
+            float lead = CombatService.GetBuffRefreshLeadSeconds(cfg, slot);
+
+            if (remaining <= lead)
+                return 180 + Mathf.Clamp((int)((lead - remaining) * 10f), 0, 40);
+
+            return 0;
         }
 
         // Token: 0x06000057 RID: 87 RVA: 0x00003FD8 File Offset: 0x000021D8
-        private static bool TryGetBuffRemainingSeconds(PlayerController player, SkillState skillState, out float remainingSeconds)
+        public static bool TryGetBuffRemainingSeconds(
+    PlayerController player,
+    SkillState skillState,
+    out float remainingSeconds)
         {
-            remainingSeconds = -1f;
-            bool result;
+            remainingSeconds = 0f;
+
             try
             {
-                StatusComponent status = player.Cast<BaseUnitController>().Status;
+                if (player == null || skillState == null)
+                    return false;
+
+                var status = player.Status;
+
                 if (status == null)
+                    return false;
+
+                var displays = status.SkillDisplays_C;
+
+                if (displays == null)
+                    return false;
+
+                SkillConfig config = skillState.Config;
+
+                if (config == null)
+                    return false;
+
+                string skillId = config.Id;
+
+                if (string.IsNullOrEmpty(skillId))
+                    return false;
+
+                foreach (var pair in displays)
                 {
-                    result = false;
-                }
-                else
-                {
-                    Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> effectDisplays_C = status.EffectsDictionary;
-                    if (effectDisplays_C == null)
+                    try
                     {
-                        result = false;
+                        string activeId = pair.key?.ToString() ?? "";
+
+                        if (string.IsNullOrEmpty(activeId))
+                            continue;
+
+                        bool matches =
+                            activeId.Equals(skillId, StringComparison.OrdinalIgnoreCase) ||
+                            activeId.Contains(skillId) ||
+                            skillId.Contains(activeId);
+
+                        if (!matches)
+                            continue;
+
+                        var state = pair.value;
+
+                        if (state == null)
+                        {
+                            remainingSeconds = -1f;
+                            return true;
+                        }
+
+                        remainingSeconds = state.Duration;
+
+                        return true;
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Buff] TryGetBuffRemainingSeconds failed: " + ex.Message);
+            }
+
+            return false;
+        }
+        // Token: 0x06000058 RID: 88 RVA: 0x0000407C File Offset: 0x0000227C
+        private static void CheckEffectDurations(
+    Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays,
+    Il2CppSystem.Collections.Generic.List<SkillStatus> effects,
+    ref bool foundAny,
+    ref float maxRemaining)
+        {
+            if (displays == null || effects == null || effects.Count == 0)
+                return;
+
+            for (int i = 0; i < effects.Count; i++)
+            {
+                SkillStatus effect = effects[i];
+
+                if (effect == null)
+                    continue;
+
+                string id = effect.Id;
+
+                if (string.IsNullOrEmpty(id))
+                    continue;
+
+                foreach (var pair in displays)
+                {
+                    string activeId = pair.key?.ToString() ?? "";
+
+                    if (string.IsNullOrEmpty(activeId))
+                        continue;
+
+                    if (!activeId.Equals(id, StringComparison.OrdinalIgnoreCase) &&
+                        !activeId.Contains(id) &&
+                        !id.Contains(activeId))
+                    {
+                        continue;
+                    }
+
+                    foundAny = true;
+
+                    var state = pair.value;
+
+                    if (state != null)
+                    {
+                        float duration = state.Duration;
+
+                        if (duration > maxRemaining)
+                            maxRemaining = duration;
                     }
                     else
                     {
-                        SkillConfig config = skillState.Config;
-                        if (config == null)
-                        {
-                            result = false;
-                        }
-                        else
-                        {
-                            bool flag = false;
-                            float num = 0f;
-                            CombatService.CheckEffectDurations(effectDisplays_C, config.StatusEffects, ref flag, ref num);
-                            CombatService.CheckEffectDurations(effectDisplays_C, config.SelfStatusEffects, ref flag, ref num);
-                            if (!flag)
-                            {
-                                result = false;
-                            }
-                            else
-                            {
-                                remainingSeconds = num;
-                                result = true;
-                            }
-                        }
+                        maxRemaining = -1f;
                     }
-                }
-            }
-            catch
-            {
-                result = false;
-            }
-            return result;
-        }
 
-        // Token: 0x06000058 RID: 88 RVA: 0x0000407C File Offset: 0x0000227C
-        private static void CheckEffectDurations(Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays, Il2CppSystem.Collections.Generic.List<SkillStatus> effects, ref bool foundAny, ref float maxRemaining)
-        {
-            if (effects == null || effects.Count == 0)
-            {
-                return;
-            }
-            for (int i = 0; i < effects.Count; i++)
-            {
-                SkillStatus skillStatus = effects[i];
-                if (skillStatus != null)
-                {
-                    string id = skillStatus.Id;
-                    if (!string.IsNullOrEmpty(id) && displays.ContainsKey(id))
-                    {
-                        foundAny = true;
-                        StatusEffectState statusEffectState = displays[id];
-                        if (statusEffectState != null)
-                        {
-                            float duration = statusEffectState.Duration;
-                            if (duration > maxRemaining)
-                            {
-                                maxRemaining = duration;
-                            }
-                        }
-                    }
+                    return;
                 }
             }
         }
-
         // Token: 0x06000059 RID: 89 RVA: 0x000040EC File Offset: 0x000022EC
         public static bool TryGetBuffRemainingSecondsForSlot(PlayerController player, int slot, out float remainingSeconds)
         {
@@ -1198,6 +1234,73 @@ namespace SpiritMod
             defaultInterpolatedStringHandler.AppendFormatted<int>(slot);
             CombatTelemetryService.RecordSent(defaultInterpolatedStringHandler.ToStringAndClear());
             return true;
+        }
+
+        public static void DebugBuffDisplayContents()
+        {
+            try
+            {
+                var player = GameStateService.Player;
+                var status = player?.Status;
+
+                if (status == null)
+                {
+                    MelonLogger.Warning("[BuffDebug] status null");
+                    return;
+                }
+
+                MelonLogger.Msg("========== BUFF DISPLAY CONTENTS ==========");
+
+                DumpStatusDict("SkillDisplays_C", status.SkillDisplays_C);
+                DumpStatusDict("StatusDisplays_C", status.StatusDisplays_C);
+                DumpStatusDict("EffectsDictionary", status.EffectsDictionary);
+
+                MelonLogger.Msg("===========================================");
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error("[BuffDebug] failed: " + ex);
+            }
+        }
+
+        private static void DumpStatusDict(
+            string label,
+            Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> dict)
+        {
+            try
+            {
+                if (dict == null)
+                {
+                    MelonLogger.Msg($"[BuffDebug] {label}=null");
+                    return;
+                }
+
+                MelonLogger.Msg($"[BuffDebug] {label}.Count={dict.Count}");
+
+                foreach (var pair in dict)
+                {
+                    string key = pair.key?.ToString() ?? "";
+                    var value = pair.value;
+
+                    MelonLogger.Msg(
+                        $"[BuffDebug] {label} key='{key}' value='{value}' duration='{GetStatusDuration(value)}'"
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning($"[BuffDebug] {label} dump failed: {ex.Message}");
+            }
+        }
+
+        private static float GetStatusDuration(StatusEffectState state)
+        {
+            if (state == null)
+                return -1f;
+
+            try { return state.Duration; } catch { }
+
+            return -1f;
         }
 
         // Token: 0x04000078 RID: 120

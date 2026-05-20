@@ -21,6 +21,12 @@ namespace SpiritMod
             try
             {
                 PlayerController playerController = GameStateService.Player ?? App.Player;
+                if (GameStateService.Player == null)
+                {
+                    MerchantService.StatusMessage = "No player";
+                    MelonLogger.Warning("[Merchant] SellFilteredItems: player not found");
+                    return 0;
+                }
                 if (playerController == null)
                 {
                     MerchantService.StatusMessage = "No player";
@@ -85,10 +91,10 @@ namespace SpiritMod
         }
 
         private static int ProcessDict<T>(
-          TransactionInventory transaction,
-          Il2CppSystem.Collections.Generic.Dictionary<string, T> items,
-          string category)
-          where T : InventoryItemData
+        TransactionInventory transaction,
+        Il2CppSystem.Collections.Generic.Dictionary<string, T> items,
+        string category)
+        where T : InventoryItemData
         {
             if (items == null)
             {
@@ -196,120 +202,68 @@ namespace SpiritMod
         {
             try
             {
-                string id = item.Id;
+                string id = item?.Id;
                 if (string.IsNullOrEmpty(id))
-                    return (string)null;
-                GameServerRuntime serverRuntime = App.ServerRuntime;
-                if (serverRuntime == null)
+                    return null;
+
+                GameServerRuntime runtime = App.ServerRuntime;
+                if (runtime == null)
                     return id;
+
                 try
                 {
-                    if (((Il2CppObjectBase)item).TryCast<EquipData>() != null)
-                    {
-                        EquipConfig equip = serverRuntime.GetEquip(id);
-                        if (equip == null)
-                        {
-                            string displayName = ((BaseConfig)equip).DisplayName;
-                            if (!string.IsNullOrEmpty(displayName))
-                                return displayName;
-                        }
-                        return id;
-                    }
+                    var equip = runtime.GetEquip(id);
+                    if (equip != null && !string.IsNullOrEmpty(((BaseConfig)equip).DisplayName))
+                        return ((BaseConfig)equip).DisplayName;
                 }
-                catch
-                {
-                }
+                catch { }
+
                 try
                 {
-                    if (((Il2CppObjectBase)item).TryCast<CardData>() != null)
-                    {
-                        CardConfig card = serverRuntime.GetCard(id);
-                        if (card == null)
-                        {
-                            string displayName = ((BaseConfig)card).DisplayName;
-                            if (!string.IsNullOrEmpty(displayName))
-                                return displayName;
-                        }
-                        return id;
-                    }
+                    var card = runtime.GetCard(id);
+                    if (card != null && !string.IsNullOrEmpty(((BaseConfig)card).DisplayName))
+                        return ((BaseConfig)card).DisplayName;
                 }
-                catch
-                {
-                }
+                catch { }
+
                 try
                 {
-                    if (((Il2CppObjectBase)item).TryCast<ArtifactData>() != null)
-                    {
-                        ArtifactSetConfig artifactSet = serverRuntime.GetArtifactSet(id);
-                        if (artifactSet == null)
-                        {
-                            string displayName = ((BaseConfig)artifactSet).DisplayName;
-                            if (!string.IsNullOrEmpty(displayName))
-                                return displayName;
-                        }
-                        return id;
-                    }
+                    var artifact = runtime.GetArtifactSet(id);
+                    if (artifact != null && !string.IsNullOrEmpty(((BaseConfig)artifact).DisplayName))
+                        return ((BaseConfig)artifact).DisplayName;
                 }
-                catch
-                {
-                }
+                catch { }
+
                 try
                 {
-                    if (((Il2CppObjectBase)item).TryCast<ConsumableData>() != null)
-                    {
-                        ConsumableConfig consumable = serverRuntime.GetConsumable(id);
-                        if (consumable == null)
-                        {
-                            string displayName = ((BaseConfig)consumable).DisplayName;
-                            if (!string.IsNullOrEmpty(displayName))
-                                return displayName;
-                        }
-                        return id;
-                    }
+                    var consumable = runtime.GetConsumable(id);
+                    if (consumable != null && !string.IsNullOrEmpty(((BaseConfig)consumable).DisplayName))
+                        return ((BaseConfig)consumable).DisplayName;
                 }
-                catch
-                {
-                }
+                catch { }
+
                 try
                 {
-                    if (((Il2CppObjectBase)item).TryCast<GemData>() != null)
-                    {
-                        GemConfig gem = serverRuntime.GetGem(id);
-                        if (gem == null)
-                        {
-                            string displayName = ((BaseConfig)gem).DisplayName;
-                            if (!string.IsNullOrEmpty(displayName))
-                                return displayName;
-                        }
-                        return id;
-                    }
+                    var gem = runtime.GetGem(id);
+                    if (gem != null && !string.IsNullOrEmpty(((BaseConfig)gem).DisplayName))
+                        return ((BaseConfig)gem).DisplayName;
                 }
-                catch
-                {
-                }
+                catch { }
+
                 try
                 {
-                    if (((Il2CppObjectBase)item).TryCast<JunkData>() != null)
-                    {
-                        JunkConfig junk = serverRuntime.GetJunk(id);
-                        if (junk == null)
-                        {
-                            string displayName = ((BaseConfig)junk).DisplayName;
-                            if (!string.IsNullOrEmpty(displayName))
-                                return displayName;
-                        }
-                        return id;
-                    }
+                    var junk = runtime.GetJunk(id);
+                    if (junk != null && !string.IsNullOrEmpty(((BaseConfig)junk).DisplayName))
+                        return ((BaseConfig)junk).DisplayName;
                 }
-                catch
-                {
-                }
+                catch { }
+
                 return id;
             }
             catch
             {
+                return null;
             }
-            return (string)null;
         }
     }
 }
