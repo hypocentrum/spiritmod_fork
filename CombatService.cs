@@ -805,65 +805,311 @@ namespace SpiritMod
                 if (player == null || skillState == null)
                     return false;
 
-                var status = player.Status;
-                if (status == null)
-                    return false;
-
-                var displays = status.SkillDisplays_C;
-                if (displays == null)
-                    return false;
-
                 SkillConfig config = skillState.Config;
                 if (config == null)
+                    return false;
+
+                // Mount/Gryphon Riding does not always appear as a normal buff effect.
+                // Treat the mount skill as active when the player is already mounting.
+                try
+                {
+                    if (CombatService.IsMountSkill(config) ||
+                        string.Equals(config.Id, "MountMastery", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(config.DisplayName, "Gryphon Riding", StringComparison.OrdinalIgnoreCase))
+                    {
+                        BaseUnitController mountUnit = player.Cast<BaseUnitController>();
+                        SummoningComponent summoning = mountUnit != null ? mountUnit.Summoning : null;
+
+                        if (summoning != null && summoning.IsMounting)
+                        {
+                            remainingSeconds = -1f;
+                            return true;
+                        }
+                    }
+                }
+                catch
+                {
+                }
+
+                StatusComponent status = null;
+
+                // Important:
+                // player.Status can miss data. The reliable source is usually BaseUnitController.Status.
+                try
+                {
+                    BaseUnitController baseUnit = player.Cast<BaseUnitController>();
+                    if (baseUnit != null)
+                        status = baseUnit.Status;
+                }
+                catch
+                {
+                }
+
+                if (status == null)
+                {
+                    try { status = player.Status; }
+                    catch { }
+                }
+
+                if (status == null)
                     return false;
 
                 bool foundAny = false;
                 float maxRemaining = 0f;
 
-                // 1. Match by skill id
-                string skillId = config.Id;
-                if (!string.IsNullOrEmpty(skillId))
-                {
-                    foreach (var pair in displays)
-                    {
-                        string activeId = pair.key?.ToString() ?? "";
-                        if (string.IsNullOrEmpty(activeId))
-                            continue;
+                // Match by every possible id:
+                // - skill id: Conviction
+                // - display name: Conviction Aura
+                // - status effect ids: Might, SpearQuicken, HolyShield, Endure, etc.
+                CombatService.MatchBuffIdInAllKnownStatusDictionaries(
+                    status,
+                    config.Id,
+                    ref foundAny,
+                    ref maxRemaining);
 
-                        if (activeId.Equals(skillId, StringComparison.OrdinalIgnoreCase) ||
-                            activeId.Contains(skillId) ||
-                            skillId.Contains(activeId))
-                        {
-                            foundAny = true;
+                CombatService.MatchBuffIdInAllKnownStatusDictionaries(
+                    status,
+                    config.DisplayName,
+                    ref foundAny,
+                    ref maxRemaining);
 
-                            var state = pair.value;
-                            if (state == null)
-                            {
-                                remainingSeconds = -1f;
-                                return true;
-                            }
+                CombatService.MatchBuffEffectListInAllKnownStatusDictionaries(
+                    status,
+                    config.StatusEffects,
+                    ref foundAny,
+                    ref maxRemaining);
 
-                            maxRemaining = Math.Max(maxRemaining, state.Duration);
-                        }
-                    }
-                }
+                CombatService.MatchBuffEffectListInAllKnownStatusDictionaries(
+                    status,
+                    config.SelfStatusEffects,
+                    ref foundAny,
+                    ref maxRemaining);
 
-                // 2. Match by buff/status effect IDs
-                CheckEffectDurations(displays, config.StatusEffects, ref foundAny, ref maxRemaining);
-                CheckEffectDurations(displays, config.SelfStatusEffects, ref foundAny, ref maxRemaining);
+                if (!foundAny)
+                    return false;
 
-                if (foundAny)
-                {
-                    remainingSeconds = maxRemaining <= 0f ? -1f : maxRemaining;
-                    return true;
-                }
+                remainingSeconds = maxRemaining <= 0f ? -1f : maxRemaining;
+                return true;
             }
             catch (Exception ex)
             {
                 MelonLogger.Warning("[Buff] TryGetBuffRemainingSeconds failed: " + ex.Message);
+                return false;
+            }
+        }
+
+        private static void MatchBuffEffectListInAllKnownStatusDictionaries(
+            StatusComponent status,
+            Il2CppSystem.Collections.Generic.List<SkillStatus> effects,
+            ref bool foundAny,
+            ref float maxRemaining)
+        {
+            if (status == null || effects == null || effects.Count == 0)
+                return;
+
+            for (int i = 0; i < effects.Count; i++)
+            {
+                SkillStatus effect = effects[i];
+                if (effect == null)
+                    continue;
+
+                string id = effect.Id;
+                if (string.IsNullOrEmpty(id))
+                    continue;
+
+                CombatService.MatchBuffIdInAllKnownStatusDictionaries(
+                    status,
+                    id,
+                    ref foundAny,
+                    ref maxRemaining);
+            }
+        }
+
+        private static void MatchBuffIdInAllKnownStatusDictionaries(
+            StatusComponent status,
+            string expectedId,
+            ref bool foundAny,
+            ref float maxRemaining)
+        {
+            if (status == null || string.IsNullOrEmpty(expectedId))
+                return;
+
+            try
+            {
+                CombatService.MatchBuffIdInDictionary(
+                    status.EffectsDictionary,
+                    expectedId,
+                    ref foundAny,
+                    ref maxRemaining);
+            }
+            catch
+            {
             }
 
-            return false;
+            try
+            {
+                CombatService.MatchBuffIdInDictionary(
+                    status.SkillDisplays_C,
+                    expectedId,
+                    ref foundAny,
+                    ref maxRemaining);
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                CombatService.MatchBuffIdInDictionary(
+                    status.StatusDisplays_C,
+                    expectedId,
+                    ref foundAny,
+                    ref maxRemaining);
+            }
+            catch
+            {
+            }
+        }
+
+        private static void MatchBuffIdInDictionary(
+            Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> dictionary,
+            string expectedId,
+            ref bool foundAny,
+            ref float maxRemaining)
+        {
+            if (dictionary == null || string.IsNullOrEmpty(expectedId))
+                return;
+
+            try
+            {
+                if (dictionary.ContainsKey(expectedId))
+                {
+                    foundAny = true;
+                    StatusEffectState state = dictionary[expectedId];
+                    maxRemaining = Math.Max(maxRemaining, CombatService.ReadBuffDurationSeconds(state));
+                    return;
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                foreach (var pair in dictionary)
+                {
+                    string activeId = pair.key != null ? pair.key.ToString() : "";
+                    if (!CombatService.BuffIdsMatch(activeId, expectedId))
+                        continue;
+
+                    foundAny = true;
+                    maxRemaining = Math.Max(
+                        maxRemaining,
+                        CombatService.ReadBuffDurationSeconds(pair.value));
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private static void MatchBuffIdInDictionary(
+            Il2CppSystem.Collections.Generic.Dictionary<string, SkillState> dictionary,
+            string expectedId,
+            ref bool foundAny,
+            ref float maxRemaining)
+        {
+            if (dictionary == null || string.IsNullOrEmpty(expectedId))
+                return;
+
+            try
+            {
+                if (dictionary.ContainsKey(expectedId))
+                {
+                    foundAny = true;
+                    var state = dictionary[expectedId];
+                    maxRemaining = Math.Max(maxRemaining, CombatService.ReadBuffDurationSeconds(state));
+                    return;
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                foreach (var pair in dictionary)
+                {
+                    string activeId = pair.key != null ? pair.key.ToString() : "";
+                    if (!CombatService.BuffIdsMatch(activeId, expectedId))
+                        continue;
+
+                    foundAny = true;
+                    maxRemaining = Math.Max(
+                        maxRemaining,
+                        CombatService.ReadBuffDurationSeconds(pair.value));
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private static bool BuffIdsMatch(string activeId, string expectedId)
+        {
+            if (string.IsNullOrEmpty(activeId) || string.IsNullOrEmpty(expectedId))
+                return false;
+
+            if (activeId.Equals(expectedId, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return activeId.IndexOf(expectedId, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   expectedId.IndexOf(activeId, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static float ReadBuffDurationSeconds(StatusEffectState state)
+        {
+            if (state == null)
+                return -1f;
+
+            try { return state.Duration; }
+            catch { return -1f; }
+        }
+
+        private static float ReadBuffDurationSeconds(SkillState state)
+        {
+            if (state == null)
+                return -1f;
+
+            try { return state.Duration; }
+            catch { return -1f; }
+        }
+        private static bool TryMatchStatusDisplay(
+    StatusComponent status,
+    string id,
+    out float remainingSeconds)
+        {
+            remainingSeconds = 0f;
+
+            if (status == null || string.IsNullOrEmpty(id))
+                return false;
+
+            var displays = status.StatusDisplays_C;
+            if (displays == null)
+                return false;
+
+            if (!displays.ContainsKey(id))
+                return false;
+
+            var state = displays[id];
+            if (state == null)
+            {
+                remainingSeconds = -1f;
+                return true;
+            }
+
+            remainingSeconds = state.Duration <= 0f ? -1f : state.Duration;
+            return true;
         }
 
         // Token: 0x06000058 RID: 88 RVA: 0x0000407C File Offset: 0x0000227C

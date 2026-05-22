@@ -433,6 +433,7 @@
 		<Compile Include="BotController.cs" />
 		<Compile Include="BotState.cs" />
 		<Compile Include="BotStatus.cs" />
+		<Compile Include="BuffLiveDumpService.cs" />
 		<Compile Include="CachedRef.cs" />
 		<Compile Include="Cheats.cs" />
 		<Compile Include="CombatService.cs" />

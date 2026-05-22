@@ -79,8 +79,9 @@ namespace SpiritMod
 			}
             if (Input.GetKeyDown(KeyCode.F8))
             {
-                //ServerDumpService.DebugUILogin();
-                //ServerListConfigService.RefreshAndSave();
+				//ServerDumpService.DebugUILogin();
+				//ServerListConfigService.RefreshAndSave();
+				BuffLiveDumpService.DumpLiveBuffDictionaries();
             }
         }
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
