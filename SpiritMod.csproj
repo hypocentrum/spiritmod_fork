@@ -477,6 +477,7 @@
 		<Compile Include="StorageService.cs" />
 		<Compile Include="StuckRecoveryService.cs" />
 		<Compile Include="SummonService.cs" />
+		<Compile Include="TargetBlacklistService.cs" />
 		<Compile Include="TargetPriorityMode.cs" />
 		<Compile Include="TeleporterService.cs" />
 		<Compile Include="UIManagerShowCharacterSelectPatch.cs" />

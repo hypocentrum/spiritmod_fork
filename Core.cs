@@ -46,17 +46,26 @@ namespace SpiritMod
 			WorldMapOverlayService.Draw();
 		}
 
-		// Token: 0x06000006 RID: 6 RVA: 0x000020C3 File Offset: 0x000002C3
-		public override void OnSceneWasInitialized(int buildIndex, string sceneName)
-		{
-			Cheats.InvalidateCache();
-			GameStateService.InvalidateAll();
-			GameCache.InvalidateAll();
-			base.LoggerInstance.Msg("Scene loaded: " + sceneName);
-		}
+        // Token: 0x06000006 RID: 6 RVA: 0x000020C3 File Offset: 0x000002C3
+        public override void OnSceneWasInitialized(int buildIndex, string sceneName)
+        {
+            Cheats.InvalidateCache();
+            GameStateService.InvalidateAll();
+            GameCache.InvalidateAll();
 
-		// Token: 0x06000007 RID: 7 RVA: 0x000020EC File Offset: 0x000002EC
-		private void HandleKeybinds()
+            BotController.ClearTarget();
+
+            if (BotController.IsEnabled)
+            {
+                BotController.TransitionTo(BotState.Idle);
+                BotController.Status.ActionTimer = 3f;
+            }
+
+            base.LoggerInstance.Msg("Scene loaded: " + sceneName);
+        }
+
+        // Token: 0x06000007 RID: 7 RVA: 0x000020EC File Offset: 0x000002EC
+        private void HandleKeybinds()
 		{
 			if (Input.GetKeyDown((KeyCode)277))
 			{

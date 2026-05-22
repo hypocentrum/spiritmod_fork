@@ -806,57 +806,56 @@ namespace SpiritMod
                     return false;
 
                 var status = player.Status;
-
                 if (status == null)
                     return false;
 
                 var displays = status.SkillDisplays_C;
-
                 if (displays == null)
                     return false;
 
                 SkillConfig config = skillState.Config;
-
                 if (config == null)
                     return false;
 
+                bool foundAny = false;
+                float maxRemaining = 0f;
+
+                // 1. Match by skill id
                 string skillId = config.Id;
-
-                if (string.IsNullOrEmpty(skillId))
-                    return false;
-
-                foreach (var pair in displays)
+                if (!string.IsNullOrEmpty(skillId))
                 {
-                    try
+                    foreach (var pair in displays)
                     {
                         string activeId = pair.key?.ToString() ?? "";
-
                         if (string.IsNullOrEmpty(activeId))
                             continue;
 
-                        bool matches =
-                            activeId.Equals(skillId, StringComparison.OrdinalIgnoreCase) ||
+                        if (activeId.Equals(skillId, StringComparison.OrdinalIgnoreCase) ||
                             activeId.Contains(skillId) ||
-                            skillId.Contains(activeId);
-
-                        if (!matches)
-                            continue;
-
-                        var state = pair.value;
-
-                        if (state == null)
+                            skillId.Contains(activeId))
                         {
-                            remainingSeconds = -1f;
-                            return true;
+                            foundAny = true;
+
+                            var state = pair.value;
+                            if (state == null)
+                            {
+                                remainingSeconds = -1f;
+                                return true;
+                            }
+
+                            maxRemaining = Math.Max(maxRemaining, state.Duration);
                         }
-
-                        remainingSeconds = state.Duration;
-
-                        return true;
                     }
-                    catch
-                    {
-                    }
+                }
+
+                // 2. Match by buff/status effect IDs
+                CheckEffectDurations(displays, config.StatusEffects, ref foundAny, ref maxRemaining);
+                CheckEffectDurations(displays, config.SelfStatusEffects, ref foundAny, ref maxRemaining);
+
+                if (foundAny)
+                {
+                    remainingSeconds = maxRemaining <= 0f ? -1f : maxRemaining;
+                    return true;
                 }
             }
             catch (Exception ex)
@@ -866,6 +865,7 @@ namespace SpiritMod
 
             return false;
         }
+
         // Token: 0x06000058 RID: 88 RVA: 0x0000407C File Offset: 0x0000227C
         private static void CheckEffectDurations(
     Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays,

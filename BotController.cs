@@ -180,42 +180,72 @@ namespace SpiritMod
 			return false;
 		}
 
-		// Token: 0x06000071 RID: 113 RVA: 0x00004C84 File Offset: 0x00002E84
-		public static void Tick(float deltaTime)
-		{
-			if (BotController._status.State == BotState.Disabled)
-			{
-				return;
-			}
-			BotController._simulatePickup = false;
-			BotController._config.EnsureArrays();
-			BotController._ctx = new BotContext
-			{
-				Player = GameStateService.Player,
-				Config = BotController._config,
-				Status = BotController._status,
-				DeltaTime = deltaTime
-			};
-			if (BotController._guards.Evaluate(BotController._ctx))
-			{
-				BotController._status.TickBenchmark(deltaTime);
-				return;
-			}
-			if (StuckRecoveryService.Tick(BotController._ctx))
-			{
-				BotController._status.TickBenchmark(deltaTime);
-				return;
-			}
-			IBotState activeState = BotController._activeState;
-			if (activeState != null)
-			{
-				activeState.Tick(BotController._ctx);
-			}
-			BotController._status.TickBenchmark(deltaTime);
-		}
+        // Token: 0x06000071 RID: 113 RVA: 0x00004C84 File Offset: 0x00002E84
+        private static float _missingPlayerTimer;
 
-		// Token: 0x04000082 RID: 130
-		internal static bool _simulatePickup;
+        public static void Tick(float deltaTime)
+        {
+            if (_status.State == BotState.Disabled)
+                return;
+
+            var player = GameStateService.Player;
+
+            if (player == null)
+            {
+                _missingPlayerTimer += deltaTime;
+
+                if (_missingPlayerTimer > 2f)
+                {
+                    _simulatePickup = false;
+                    _currentTarget = null;
+                    _activeState = null;
+                    GameStateService.InvalidateAll();
+                    GameCache.InvalidateAll();
+
+                    // keep bot enabled, but reset transient state
+                    _status.TargetName = string.Empty;
+                    _status.TargetHealth = 0;
+                    _status.TargetMaxHp = 0;
+                    _status.ActionTimer = 1f;
+
+                    // optional: prevent UI showing active farming state
+                    _status.State = BotState.Idle;
+                }
+
+                return;
+            }
+
+            _missingPlayerTimer = 0f;
+
+            _simulatePickup = false;
+            _config.EnsureArrays();
+
+            _ctx = new BotContext
+            {
+                Player = player,
+                Config = _config,
+                Status = _status,
+                DeltaTime = deltaTime
+            };
+
+            if (_guards.Evaluate(_ctx))
+            {
+                _status.TickBenchmark(deltaTime);
+                return;
+            }
+
+            if (StuckRecoveryService.Tick(_ctx))
+            {
+                _status.TickBenchmark(deltaTime);
+                return;
+            }
+
+            _activeState?.Tick(_ctx);
+            _status.TickBenchmark(deltaTime);
+        }
+
+        // Token: 0x04000082 RID: 130
+        internal static bool _simulatePickup;
 
 		// Token: 0x04000083 RID: 131
 		private static readonly BotConfig _config = new BotConfig();
