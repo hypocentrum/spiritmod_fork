@@ -151,7 +151,7 @@ namespace SpiritMod
                         yield break;
                     }
 
-                    serverMap = uiLogin.serverUIMap;
+                    serverMap = uiLogin.serverMap;
 
                     if (serverMap != null && serverMap.Count > 0)
                         break;
@@ -194,7 +194,8 @@ namespace SpiritMod
 
                 StatusMessage = $"Connecting to '{wantedServerName}'...";
 
-                uiLogin.SetSelected(instanceId);
+                uiLogin.SelectRegion("OCE");
+                uiLogin.SelectServer("aurora-4");
                 uiLogin.Connect();
 
                 MelonLogger.Msg("[AutoLogin] Connect called.");

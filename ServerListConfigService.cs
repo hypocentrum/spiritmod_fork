@@ -125,7 +125,7 @@ namespace SpiritMod
 
             try
             {
-                var map = login.serverUIMap;
+                var map = login.serverMap;
 
                 if (map == null)
                 {

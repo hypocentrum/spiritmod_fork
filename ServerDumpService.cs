@@ -53,7 +53,7 @@ namespace SpiritMod
                 var type = login.GetType();
 
                 MelonLogger.Msg("===== UILogin Fields =====");
-                var serverList = login.serverUIMap;
+                var serverList = login.serverMap;
 
                 foreach (var f in serverList)
                 {
