@@ -64,7 +64,7 @@ namespace SpiritMod
                             $"FIELD {f.key} = {f.value}"
                         );
                     }
-                    catch (Exception ex)
+                    catch
                     {
                     }
                 }

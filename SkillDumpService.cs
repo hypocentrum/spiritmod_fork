@@ -1,11 +1,10 @@
-﻿using Il2Cpp;
+using Il2Cpp;
 using Il2CppInterop.Runtime.InteropTypes;
 using Il2CppSystem.Collections.Generic;
 using MelonLoader;
 using System;
 using System.IO;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace SpiritMod
@@ -21,261 +20,462 @@ namespace SpiritMod
                 PlayerController player = GameStateService.Player;
                 if (player == null)
                     return "Error: No player found";
-                BaseUnitController baseUnitController = ((Il2CppObjectBase)player).Cast<BaseUnitController>();
+
+                BaseUnitController baseUnitController = null;
+
+                try
+                {
+                    baseUnitController = ((Il2CppObjectBase)player).Cast<BaseUnitController>();
+                }
+                catch
+                {
+                    try
+                    {
+                        baseUnitController = player.Cast<BaseUnitController>();
+                    }
+                    catch
+                    {
+                        return "Error: Could not cast player to BaseUnitController";
+                    }
+                }
+
+                if (baseUnitController == null)
+                    return "Error: BaseUnitController null";
+
                 SkillsComponent skills = baseUnitController.Skills;
                 if (skills == null)
                     return "Error: Skills component null";
-                Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> effectDisplaysC = baseUnitController.Status?.EffectsDictionary;
+
+                Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> effectDisplays = null;
+
+                try
+                {
+                    effectDisplays = baseUnitController.Status?.EffectsDictionary;
+                }
+                catch
+                {
+                    effectDisplays = null;
+                }
+
                 System.Collections.Generic.List<SkillData> assignedSkillList = CombatService.GetAssignedSkillList(player);
                 if (assignedSkillList == null || assignedSkillList.Count == 0)
                     return "Error: No assigned skills";
+
                 StringBuilder stringBuilder = new StringBuilder();
-                stringBuilder.AppendLine(string.Join(",", "Slot", "SkillId", "DisplayName", "Level", "SS_Cooldown", "SS_Cost", "SS_CastTime", "SS_Duration", "SS_Delay", "SS_Area", "SS_Hits", "SS_Autocast", "SS_IsOnCooldown", "SS_IsHealing", "SS_IsDamage", "SC_CastType", "SC_TargetType", "SC_DamageType", "SC_Element", "SC_Range", "SC_Bond", "SC_Attached", "SC_Teleport", "SC_Piercing", "SC_TriggerHit", "SC_TriggerAutocast", "SC_Hybrid", "SC_MaxLv", "Mod_IsBuff", "Mod_IsSummon", "Mod_IsBond", "Mod_IsMount", "Mod_IsPermanent", "StatusEffects", "SelfStatusEffects", "LiveEffects", "USER_IsBuff", "USER_IsPermanent", "USER_Notes"));
-                int num = Math.Min(assignedSkillList.Count, 20);
-                for (int index1 = 0; index1 < num; ++index1)
+
+                stringBuilder.AppendLine(string.Join(Separator,
+                    "Slot",
+                    "SkillId",
+                    "DisplayName",
+                    "Level",
+                    "SS_Cooldown",
+                    "SS_Cost",
+                    "SS_CastTime",
+                    "SS_Duration",
+                    "SS_Delay",
+                    "SS_Area",
+                    "SS_Hits",
+                    "SS_Autocast",
+                    "SS_IsOnCooldown",
+                    "SS_IsHealing",
+                    "SS_IsDamage",
+                    "SC_CastType",
+                    "SC_TargetType",
+                    "SC_DamageType",
+                    "SC_Element",
+                    "SC_Range",
+                    "SC_Bond",
+                    "SC_Attached",
+                    "SC_Teleport",
+                    "SC_Piercing",
+                    "SC_TriggerHit",
+                    "SC_TriggerAutocast",
+                    "SC_Hybrid",
+                    "SC_MaxLv",
+                    "Mod_IsBuff",
+                    "Mod_IsSummon",
+                    "Mod_IsBond",
+                    "Mod_IsMount",
+                    "Mod_IsPermanent",
+                    "StatusEffects",
+                    "SelfStatusEffects",
+                    "LiveEffects",
+                    "USER_IsBuff",
+                    "USER_IsPermanent",
+                    "USER_Notes"));
+
+                int count = Math.Min(assignedSkillList.Count, 20);
+
+                for (int slot = 0; slot < count; ++slot)
                 {
-                    SkillData skillData = assignedSkillList[index1];
-                    if (skillData != null && !string.IsNullOrEmpty(skillData.Id))
+                    SkillData skillData = assignedSkillList[slot];
+                    if (skillData == null || string.IsNullOrEmpty(skillData.Id))
+                        continue;
+
+                    string id = skillData.Id;
+                    SkillState skillState = null;
+
+                    try
                     {
-                        string id = skillData.Id;
-                        SkillState skillState = (SkillState)null;
-                        try
-                        {
-                            skillState = skills.GetAnySkill(id);
-                        }
-                        catch
-                        {
-                        }
-                        SkillConfig cfg = (SkillConfig)null;
-                        try
-                        {
-                            cfg = skillState?.Config;
-                        }
-                        catch
-                        {
-                        }
-                        string s = "";
-                        try
-                        {
-                            s = ((BaseConfig)cfg)?.DisplayName ?? "";
-                        }
-                        catch
-                        {
-                        }
-                        stringBuilder.Append(index1);
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(SkillDumpService.Esc(id));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(SkillDumpService.Esc(s));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(skillState != null ? skillState.Level : skillData.Level);
-                        stringBuilder.Append(",");
-                        if (skillState != null)
-                        {
-                            stringBuilder.Append(skillState.Cooldown);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.Cost);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.CastTime);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.Duration);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.Delay);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.Area);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.Hits);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.Autocast);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.IsOnCooldown);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.IsHealing);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(skillState.IsDamage);
-                            stringBuilder.Append(",");
-                        }
-                        else
-                        {
-                            for (int index2 = 0; index2 < 11; ++index2)
-                                stringBuilder.Append(",");
-                        }
-                        if (cfg == null)
-                        {
-                            stringBuilder.Append((int)cfg.CastType);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append((int)cfg.TargetType);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append((int)cfg.DamageType);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append((int)cfg.Element);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(cfg.Range);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(cfg.Bond);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(cfg.Attached);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(cfg.Teleport);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(cfg.Piercing);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(cfg.TriggerHit);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(cfg.TriggerAutocast);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(cfg.Hybrid);
-                            stringBuilder.Append(",");
-                            stringBuilder.Append(((BaseSkillConfig)cfg).MaxLv);
-                            stringBuilder.Append(",");
-                        }
-                        else
-                        {
-                            for (int index3 = 0; index3 < 13; ++index3)
-                                stringBuilder.Append(",");
-                        }
-                        stringBuilder.Append(cfg != null && CombatService.IsBuffSkill(cfg));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(cfg != null && CombatService.IsSummonSkill(cfg));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(cfg != null && CombatService.IsBondSkill(cfg));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(cfg != null && CombatService.IsMountSkill(cfg));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(cfg != null && CombatService.IsPermanentBuff(cfg));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(SkillDumpService.Esc(SkillDumpService.FormatStatusList(cfg?.StatusEffects, skillState != null ? skillState.Level : 1)));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(SkillDumpService.Esc(SkillDumpService.FormatStatusList(cfg?.SelfStatusEffects, skillState != null ? skillState.Level : 1)));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(SkillDumpService.Esc(SkillDumpService.FormatLiveEffects(effectDisplaysC, cfg)));
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(",");
-                        stringBuilder.Append(",");
-                        stringBuilder.AppendLine();
+                        skillState = skills.GetAnySkill(id);
                     }
+                    catch
+                    {
+                        skillState = null;
+                    }
+
+                    SkillConfig cfg = null;
+
+                    try
+                    {
+                        cfg = skillState?.Config;
+                    }
+                    catch
+                    {
+                        cfg = null;
+                    }
+
+                    string displayName = string.Empty;
+
+                    try
+                    {
+                        displayName = ((BaseConfig)cfg)?.DisplayName ?? string.Empty;
+                    }
+                    catch
+                    {
+                        displayName = string.Empty;
+                    }
+
+                    int level = 1;
+                    try
+                    {
+                        level = skillState != null ? skillState.Level : skillData.Level;
+                    }
+                    catch
+                    {
+                        level = 1;
+                    }
+
+                    stringBuilder.Append(slot);
+                    stringBuilder.Append(Separator);
+                    stringBuilder.Append(Esc(id));
+                    stringBuilder.Append(Separator);
+                    stringBuilder.Append(Esc(displayName));
+                    stringBuilder.Append(Separator);
+                    stringBuilder.Append(level);
+                    stringBuilder.Append(Separator);
+
+                    AppendSkillStateColumns(stringBuilder, skillState);
+                    AppendSkillConfigColumns(stringBuilder, cfg);
+
+                    stringBuilder.Append(SafeBool(() => cfg != null && CombatService.IsBuffSkill(cfg)));
+                    stringBuilder.Append(Separator);
+                    stringBuilder.Append(SafeBool(() => cfg != null && CombatService.IsSummonSkill(cfg)));
+                    stringBuilder.Append(Separator);
+                    stringBuilder.Append(SafeBool(() => cfg != null && CombatService.IsBondSkill(cfg)));
+                    stringBuilder.Append(Separator);
+                    stringBuilder.Append(SafeBool(() => cfg != null && CombatService.IsMountSkill(cfg)));
+                    stringBuilder.Append(Separator);
+                    stringBuilder.Append(SafeBool(() => cfg != null && CombatService.IsPermanentBuff(cfg)));
+                    stringBuilder.Append(Separator);
+
+                    stringBuilder.Append(Esc(FormatStatusList(cfg?.StatusEffects, level)));
+                    stringBuilder.Append(Separator);
+                    stringBuilder.Append(Esc(FormatStatusList(cfg?.SelfStatusEffects, level)));
+                    stringBuilder.Append(Separator);
+                    stringBuilder.Append(Esc(FormatLiveEffects(effectDisplays, cfg)));
+                    stringBuilder.Append(Separator);
+
+                    // User-editable columns in CSV.
+                    stringBuilder.Append(Separator); // USER_IsBuff
+                    stringBuilder.Append(Separator); // USER_IsPermanent
+                    stringBuilder.AppendLine();      // USER_Notes
                 }
-                string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".", "skill_dump.csv");
+
+                string path = Path.Combine(
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".",
+                    "skill_dump.csv");
+
                 File.WriteAllText(path, stringBuilder.ToString());
                 MelonLogger.Msg("[SkillDump] Wrote " + path);
+
                 return path;
             }
             catch (Exception ex)
             {
-                MelonLogger.Warning("[SkillDump] Failed: " + ex.Message);
+                MelonLogger.Warning("[SkillDump] Failed: " + ex);
                 return "Error: " + ex.Message;
             }
+        }
+
+        private static void AppendSkillStateColumns(StringBuilder sb, SkillState skillState)
+        {
+            if (skillState != null)
+            {
+                sb.Append(SafeValue(() => skillState.Cooldown));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.Cost));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.CastTime));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.Duration));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.Delay));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.Area));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.Hits));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.Autocast));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.IsOnCooldown));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.IsHealing));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => skillState.IsDamage));
+                sb.Append(Separator);
+            }
+            else
+            {
+                AppendEmptyColumns(sb, 11);
+            }
+        }
+
+        private static void AppendSkillConfigColumns(StringBuilder sb, SkillConfig cfg)
+        {
+            // Important fix: this must be cfg != null.
+            // The old repo version used cfg == null and then dereferenced cfg, causing NullReferenceException.
+            if (cfg != null)
+            {
+                sb.Append(SafeValue(() => (int)cfg.CastType));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => (int)cfg.TargetType));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => (int)cfg.DamageType));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => (int)cfg.Element));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => cfg.Range));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => cfg.Bond));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => cfg.Attached));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => cfg.Teleport));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => cfg.Piercing));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => cfg.TriggerHit));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => cfg.TriggerAutocast));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => cfg.Hybrid));
+                sb.Append(Separator);
+                sb.Append(SafeValue(() => ((BaseSkillConfig)cfg).MaxLv));
+                sb.Append(Separator);
+            }
+            else
+            {
+                AppendEmptyColumns(sb, 13);
+            }
+        }
+
+        private static void AppendEmptyColumns(StringBuilder sb, int count)
+        {
+            for (int i = 0; i < count; ++i)
+                sb.Append(Separator);
         }
 
         private static string FormatStatusList(Il2CppSystem.Collections.Generic.List<SkillStatus> list, int level)
         {
             if (list == null || list.Count == 0)
-                return "";
-            StringBuilder stringBuilder1 = new StringBuilder();
-            for (int index = 0; index < list.Count; ++index)
+                return string.Empty;
+
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < list.Count; ++i)
             {
-                SkillStatus skillStatus = list[index];
-                if (skillStatus != null)
+                SkillStatus skillStatus = null;
+
+                try
                 {
-                    if (stringBuilder1.Length > 0)
-                        stringBuilder1.Append(" | ");
-                    float num1 = skillStatus.Duration + skillStatus.DurationLv * (float)level;
-                    float num2 = skillStatus.Chance + skillStatus.ChanceLv * (float)level;
-                    StringBuilder stringBuilder2 = stringBuilder1;
-                    StringBuilder stringBuilder3 = stringBuilder2;
-                    StringBuilder.AppendInterpolatedStringHandler interpolatedStringHandler = new StringBuilder.AppendInterpolatedStringHandler(43, 10, stringBuilder2);
-                    interpolatedStringHandler.AppendFormatted(skillStatus.Id);
-                    interpolatedStringHandler.AppendLiteral("(dur=");
-                    interpolatedStringHandler.AppendFormatted<float>(skillStatus.Duration);
-                    interpolatedStringHandler.AppendLiteral("+");
-                    interpolatedStringHandler.AppendFormatted<float>(skillStatus.DurationLv);
-                    interpolatedStringHandler.AppendLiteral("/lv=");
-                    interpolatedStringHandler.AppendFormatted<float>(num1, "F1");
-                    interpolatedStringHandler.AppendLiteral(" ");
-                    interpolatedStringHandler.AppendLiteral("chance=");
-                    interpolatedStringHandler.AppendFormatted<float>(skillStatus.Chance);
-                    interpolatedStringHandler.AppendLiteral("+");
-                    interpolatedStringHandler.AppendFormatted<float>(skillStatus.ChanceLv);
-                    interpolatedStringHandler.AppendLiteral("/lv=");
-                    interpolatedStringHandler.AppendFormatted<float>(num2, "F1");
-                    interpolatedStringHandler.AppendLiteral(" ");
-                    interpolatedStringHandler.AppendLiteral("stacks=");
-                    interpolatedStringHandler.AppendFormatted<int>(skillStatus.Stacks);
-                    interpolatedStringHandler.AppendLiteral("+");
-                    interpolatedStringHandler.AppendFormatted<int>(skillStatus.StacksLv);
-                    interpolatedStringHandler.AppendLiteral("/lv ");
-                    interpolatedStringHandler.AppendLiteral("fixed=");
-                    interpolatedStringHandler.AppendFormatted<bool>(skillStatus.FixedDuration);
-                    interpolatedStringHandler.AppendLiteral(")");
-                    ref StringBuilder.AppendInterpolatedStringHandler local = ref interpolatedStringHandler;
-                    stringBuilder3.Append(ref local);
+                    skillStatus = list[i];
                 }
+                catch
+                {
+                    skillStatus = null;
+                }
+
+                if (skillStatus == null)
+                    continue;
+
+                if (sb.Length > 0)
+                    sb.Append(" | ");
+
+                float totalDuration = SafeValue(() => skillStatus.Duration + skillStatus.DurationLv * level, 0f);
+                float totalChance = SafeValue(() => skillStatus.Chance + skillStatus.ChanceLv * level, 0f);
+
+                sb.Append(SafeValue(() => skillStatus.Id, string.Empty));
+                sb.Append("(dur=");
+                sb.Append(SafeValue(() => skillStatus.Duration, 0f));
+                sb.Append("+");
+                sb.Append(SafeValue(() => skillStatus.DurationLv, 0f));
+                sb.Append("/lv=");
+                sb.Append(totalDuration.ToString("F1"));
+                sb.Append(" chance=");
+                sb.Append(SafeValue(() => skillStatus.Chance, 0f));
+                sb.Append("+");
+                sb.Append(SafeValue(() => skillStatus.ChanceLv, 0f));
+                sb.Append("/lv=");
+                sb.Append(totalChance.ToString("F1"));
+                sb.Append(" stacks=");
+                sb.Append(SafeValue(() => skillStatus.Stacks, 0));
+                sb.Append("+");
+                sb.Append(SafeValue(() => skillStatus.StacksLv, 0));
+                sb.Append("/lv fixed=");
+                sb.Append(SafeValue(() => skillStatus.FixedDuration, false));
+                sb.Append(")");
             }
-            return stringBuilder1.ToString();
+
+            return sb.ToString();
         }
 
-        private static string FormatLiveEffects(
-          Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays,
-          SkillConfig cfg)
+        private static string FormatLiveEffects(Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays, SkillConfig cfg)
         {
             if (displays == null || cfg == null)
-                return "";
-            StringBuilder sb = new StringBuilder();
-            try
-            {
-                Check(cfg.StatusEffects, "SE", ref sb);
-            }
-            catch
-            {
-            }
-            try
-            {
-                Check(cfg.SelfStatusEffects, "Self", ref sb);
-            }
-            catch
-            {
-            }
-            return sb.ToString();
+                return string.Empty;
 
-            void Check(Il2CppSystem.Collections.Generic.List<SkillStatus> list, string tag, ref StringBuilder sb_)
+            StringBuilder sb = new StringBuilder();
+
+            try
             {
-                if (list == null)
-                    return;
-                for (int index = 0; index < list.Count; ++index)
+                AppendLiveEffectMatches(displays, cfg.StatusEffects, "SE", sb);
+            }
+            catch
+            {
+                // Ignore individual dump failures; this is a diagnostic exporter.
+            }
+
+            try
+            {
+                AppendLiveEffectMatches(displays, cfg.SelfStatusEffects, "Self", sb);
+            }
+            catch
+            {
+                // Ignore individual dump failures; this is a diagnostic exporter.
+            }
+
+            return sb.ToString();
+        }
+
+        private static void AppendLiveEffectMatches(
+            Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays,
+            Il2CppSystem.Collections.Generic.List<SkillStatus> list,
+            string tag,
+            StringBuilder sb)
+        {
+            if (displays == null || list == null)
+                return;
+
+            for (int i = 0; i < list.Count; ++i)
+            {
+                SkillStatus skillStatus = null;
+
+                try
                 {
-                    SkillStatus skillStatus = list[index];
-                    if (skillStatus != null && !string.IsNullOrEmpty(skillStatus.Id) && displays.ContainsKey(skillStatus.Id))
+                    skillStatus = list[i];
+                }
+                catch
+                {
+                    skillStatus = null;
+                }
+
+                if (skillStatus == null || string.IsNullOrEmpty(skillStatus.Id))
+                    continue;
+
+                bool contains = false;
+
+                try
+                {
+                    contains = displays.ContainsKey(skillStatus.Id);
+                }
+                catch
+                {
+                    contains = false;
+                }
+
+                if (!contains)
+                    continue;
+
+                StatusEffectState display = null;
+
+                try
+                {
+                    display = displays[skillStatus.Id]?.Cast<StatusEffectState>();
+                }
+                catch
+                {
+                    try
                     {
-                        StatusEffectState display = displays[skillStatus.Id];
-                        if (display != null)
-                        {
-                            if (sb_.Length > 0)
-                                sb_.Append(" | ");
-                            StringBuilder stringBuilder = sb_;
-                            StringBuilder.AppendInterpolatedStringHandler interpolatedStringHandler = new StringBuilder.AppendInterpolatedStringHandler(26, 5, sb);
-                            interpolatedStringHandler.AppendFormatted(tag);
-                            interpolatedStringHandler.AppendLiteral(":");
-                            interpolatedStringHandler.AppendFormatted(skillStatus.Id);
-                            interpolatedStringHandler.AppendLiteral("(dur=");
-                            interpolatedStringHandler.AppendFormatted<float>(display.Duration, "F2");
-                            interpolatedStringHandler.AppendLiteral(" stacks=");
-                            interpolatedStringHandler.AppendFormatted<int>(display.Stacks);
-                            interpolatedStringHandler.AppendLiteral(" stackable=");
-                            interpolatedStringHandler.AppendFormatted<bool>(display.Stackable);
-                            interpolatedStringHandler.AppendLiteral(")");
-                            ref StringBuilder.AppendInterpolatedStringHandler local = ref interpolatedStringHandler;
-                            stringBuilder.Append(ref local);
-                        }
+                        display = displays[skillStatus.Id] as StatusEffectState;
+                    }
+                    catch
+                    {
+                        display = null;
                     }
                 }
+
+                if (display == null)
+                    continue;
+
+                if (sb.Length > 0)
+                    sb.Append(" | ");
+
+                sb.Append(tag);
+                sb.Append(":");
+                sb.Append(skillStatus.Id);
+                sb.Append("(dur=");
+                sb.Append(SafeValue(() => display.Duration, 0f).ToString("F2"));
+                sb.Append(" stacks=");
+                sb.Append(SafeValue(() => display.Stacks, 0));
+                sb.Append(" stackable=");
+                sb.Append(SafeValue(() => display.Stackable, false));
+                sb.Append(")");
             }
         }
 
         private static string Esc(string s)
         {
             if (string.IsNullOrEmpty(s))
-                return "";
-            return s.Contains(",") || s.Contains("\"") || s.Contains("\n") ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
+                return string.Empty;
+
+            return s.Contains(",") || s.Contains("\"") || s.Contains("\n") || s.Contains("\r")
+                ? $"\"{s.Replace("\"", "\"\"")}\""
+                : s;
+        }
+
+        private static bool SafeBool(Func<bool> getter)
+        {
+            try
+            {
+                return getter();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static T SafeValue<T>(Func<T> getter, T fallback = default)
+        {
+            try
+            {
+                return getter();
+            }
+            catch
+            {
+                return fallback;
+            }
         }
     }
 }

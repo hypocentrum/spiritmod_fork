@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
@@ -7,8 +7,12 @@ namespace SpiritMod.States
 {
     public class CombatState : IBotState
     {
-        private const float NoDamageBlacklistSeconds = 8f;
-        private const float NotEngagedBlacklistSeconds = 4f;
+        public BotState Id
+        {
+            get { return BotState.Combat; }
+        }
+
+        private const float NoDamageAfterActionTimeout = 3f;
         private const float BlacklistDurationSeconds = 60f;
 
         private float _dashEvadeCooldownTimer;
@@ -16,14 +20,13 @@ namespace SpiritMod.States
         private bool _fallbackCastTracking;
         private float _safetyReClickTimer;
 
-        private int _lastTargetHp;
-        private float _noDamageTimer;
-        private float _notEngagedTimer;
+        private BaseUnitController _trackedTarget;
+        private int _lastObservedHp;
 
-        public BotState Id
-        {
-            get { return BotState.Combat; }
-        }
+        private bool _waitingForDamageAfterAction;
+        private float _damageWatchTimer;
+        private int _damageWatchStartHp;
+        private string _lastDamageAction;
 
         public void Enter(BotContext ctx)
         {
@@ -32,9 +35,7 @@ namespace SpiritMod.States
             _fallbackCastTracking = false;
             _safetyReClickTimer = 0f;
 
-            _lastTargetHp = -1;
-            _noDamageTimer = 0f;
-            _notEngagedTimer = 0f;
+            ResetDamageWatch();
         }
 
         public void Tick(BotContext ctx)
@@ -49,6 +50,8 @@ namespace SpiritMod.States
                 ctx.Status.TargetHealth = 0;
                 ctx.Status.TargetMaxHp = 0;
 
+                ResetDamageWatch();
+
                 if (ctx.Config.EnableLooting)
                 {
                     BotController.TransitionTo(BotState.Looting);
@@ -62,7 +65,12 @@ namespace SpiritMod.States
                 return;
             }
 
-            CombatService.ReadTargetHealth(currentTarget, out ctx.Status.TargetHealth, out ctx.Status.TargetMaxHp);
+            CombatService.ReadTargetHealth(
+                currentTarget,
+                out ctx.Status.TargetHealth,
+                out ctx.Status.TargetMaxHp);
+
+            TrackTargetHp(currentTarget, ctx.Status.TargetHealth);
 
             PlayerController player = ctx.Player;
             if (player == null)
@@ -70,38 +78,36 @@ namespace SpiritMod.States
 
             try
             {
-                CombatService.ReadTargetHealth(player.Cast<BaseUnitController>(), out ctx.Status.PlayerHealth, out ctx.Status.PlayerMaxHp);
+                CombatService.ReadTargetHealth(
+                    player.Cast<BaseUnitController>(),
+                    out ctx.Status.PlayerHealth,
+                    out ctx.Status.PlayerMaxHp);
+
                 ctx.Status.PlayerHPNorm = CombatService.GetPlayerHPNormalised(player);
             }
             catch
             {
             }
 
-            bool alreadyEngaged = false;
-            try
-            {
-                alreadyEngaged = CombatService.IsAlreadyEngaged(player, currentTarget);
-            }
-            catch
-            {
-                alreadyEngaged = false;
-            }
-
-            if (ShouldBlacklistCurrentTarget(ctx, currentTarget, alreadyEngaged))
-                return;
-
             TryAutoDashEvade(ctx, player, currentTarget);
 
             if (ctx.Config.EnableSkills)
             {
                 ctx.Status.SkillTimer -= ctx.DeltaTime;
+
                 if (ctx.Status.SkillTimer <= 0f)
                 {
                     ctx.Status.SkillTimer = ctx.Config.SkillInterval;
+
                     try
                     {
                         ctx.Status.SkillAttempts++;
                         CombatService.TryCastSkill(player, ctx.Config, ctx.Status);
+
+                        StartDamageWatch(
+                            currentTarget,
+                            ctx.Status.TargetHealth,
+                            "skill cast");
                     }
                     catch (Exception ex)
                     {
@@ -109,6 +115,9 @@ namespace SpiritMod.States
                     }
                 }
             }
+
+            if (CheckNoDamageAfterAction(ctx, currentTarget))
+                return;
 
             ctx.Status.AttackTimer -= ctx.DeltaTime;
             if (ctx.Status.AttackTimer > 0f)
@@ -121,11 +130,25 @@ namespace SpiritMod.States
                 ctx.Status.AttackAttempts++;
                 _safetyReClickTimer -= ctx.Config.AttackInterval;
 
-                if (!alreadyEngaged || _safetyReClickTimer <= 0f)
+                if (!CombatService.IsAlreadyEngaged(player, currentTarget) || _safetyReClickTimer <= 0f)
                 {
                     CombatService.ClickTarget(player, currentTarget);
                     ctx.Status.AttackRequestsSent++;
                     _safetyReClickTimer = 10f;
+
+                    StartDamageWatch(
+                        currentTarget,
+                        ctx.Status.TargetHealth,
+                        "attack/click target");
+                }
+                else
+                {
+                    // Already engaged still counts as an attack attempt. This catches cases where
+                    // the bot keeps auto-attacking an unattackable monster forever.
+                    StartDamageWatch(
+                        currentTarget,
+                        ctx.Status.TargetHealth,
+                        "attack/engaged");
                 }
             }
             catch (Exception ex)
@@ -140,72 +163,108 @@ namespace SpiritMod.States
             _fallbackCastTracking = false;
             _safetyReClickTimer = 0f;
 
-            _lastTargetHp = -1;
-            _noDamageTimer = 0f;
-            _notEngagedTimer = 0f;
+            ResetDamageWatch();
         }
 
-        private bool ShouldBlacklistCurrentTarget(BotContext ctx, BaseUnitController currentTarget, bool alreadyEngaged)
+        private void TrackTargetHp(BaseUnitController target, int currentHp)
         {
-            int currentHp = ctx.Status.TargetHealth;
-
-            if (_lastTargetHp < 0)
+            if (_trackedTarget != target)
             {
-                _lastTargetHp = currentHp;
+                _trackedTarget = target;
+                _lastObservedHp = currentHp;
+                ResetDamageWatch();
+                return;
+            }
+
+            if (currentHp < _lastObservedHp)
+            {
+                _lastObservedHp = currentHp;
+
+                // HP decreased, so the target is damageable.
+                ResetDamageWatch();
+            }
+            else if (currentHp > _lastObservedHp)
+            {
+                // Target healed/regenerated. Use the latest HP as the new baseline.
+                _lastObservedHp = currentHp;
+            }
+        }
+
+        private void StartDamageWatch(BaseUnitController target, int currentHp, string actionName)
+        {
+            if (target == null || currentHp <= 0)
+                return;
+
+            // Do not restart the 3-second timer every frame/action for the same target.
+            // Otherwise the timer never reaches 3 seconds.
+            if (_waitingForDamageAfterAction && _trackedTarget == target)
+                return;
+
+            _trackedTarget = target;
+            _lastObservedHp = currentHp;
+            _damageWatchStartHp = currentHp;
+            _damageWatchTimer = 0f;
+            _lastDamageAction = actionName;
+            _waitingForDamageAfterAction = true;
+
+            MelonLogger.Msg(
+                "[Combat] Watching target HP after " + actionName + ". Start HP=" + currentHp);
+        }
+
+        private bool CheckNoDamageAfterAction(BotContext ctx, BaseUnitController currentTarget)
+        {
+            if (!_waitingForDamageAfterAction)
+                return false;
+
+            if (currentTarget == null || _trackedTarget != currentTarget)
+            {
+                ResetDamageWatch();
                 return false;
             }
 
-            if (currentHp < _lastTargetHp)
+            // Any HP drop after attack or skill means the target is valid.
+            if (ctx.Status.TargetHealth < _damageWatchStartHp)
             {
-                _lastTargetHp = currentHp;
-                _noDamageTimer = 0f;
-                _notEngagedTimer = 0f;
+                ResetDamageWatch();
+                _lastObservedHp = ctx.Status.TargetHealth;
                 return false;
             }
 
-            _noDamageTimer += ctx.DeltaTime;
+            _damageWatchTimer += ctx.DeltaTime;
 
-            if (!alreadyEngaged)
-                _notEngagedTimer += ctx.DeltaTime;
-            else
-                _notEngagedTimer = 0f;
+            if (_damageWatchTimer < NoDamageAfterActionTimeout)
+                return false;
 
-            if (_notEngagedTimer >= NotEngagedBlacklistSeconds)
-            {
-                BlacklistAndReturnToIdle(
-                    ctx,
-                    currentTarget,
-                    "Not engaged for " + _notEngagedTimer.ToString("F1") + "s");
-                return true;
-            }
+            string reason =
+                "Target HP did not decrease within 3 seconds after " +
+                (_lastDamageAction ?? "attack/castskill") +
+                ".";
 
-            if (_noDamageTimer >= NoDamageBlacklistSeconds)
-            {
-                BlacklistAndReturnToIdle(
-                    ctx,
-                    currentTarget,
-                    "No HP reduction for " + _noDamageTimer.ToString("F1") + "s");
-                return true;
-            }
+            TargetBlacklistService.Blacklist(
+                currentTarget,
+                BlacklistDurationSeconds,
+                reason);
 
-            return false;
-        }
-
-        private void BlacklistAndReturnToIdle(BotContext ctx, BaseUnitController currentTarget, string reason)
-        {
-            TargetBlacklistService.Blacklist(currentTarget, BlacklistDurationSeconds, reason);
+            MelonLogger.Warning("[Combat] Blacklisted target. " + reason);
 
             BotController.ClearTarget();
+            ResetDamageWatch();
+
             ctx.Status.TargetName = string.Empty;
             ctx.Status.TargetHealth = 0;
             ctx.Status.TargetMaxHp = 0;
             ctx.Status.ActionTimer = 0.2f;
 
-            _lastTargetHp = -1;
-            _noDamageTimer = 0f;
-            _notEngagedTimer = 0f;
-
             BotController.TransitionTo(BotState.Idle);
+            return true;
+        }
+
+        private void ResetDamageWatch()
+        {
+            _waitingForDamageAfterAction = false;
+            _damageWatchTimer = 0f;
+            _damageWatchStartHp = 0;
+            _lastDamageAction = null;
         }
 
         private void TryAutoDashEvade(BotContext ctx, PlayerController player, BaseUnitController currentTarget)
@@ -217,7 +276,7 @@ namespace SpiritMod.States
             if (_dashEvadeCooldownTimer > 0f)
                 return;
 
-            bool isCasting = false;
+            bool targetIsCasting = false;
 
             try
             {
@@ -225,14 +284,16 @@ namespace SpiritMod.States
                 if (skillsComponent != null)
                 {
                     float castTime = skillsComponent.CastTime;
-                    isCasting = (skillsComponent.CastTimeMax > 0f && castTime > 0f) || skillsComponent.IsCasting;
+                    targetIsCasting =
+                        (skillsComponent.CastTimeMax > 0f && castTime > 0f) ||
+                        skillsComponent.IsCasting;
                 }
             }
             catch
             {
             }
 
-            if (!isCasting)
+            if (!targetIsCasting)
             {
                 _fallbackCastTracking = false;
                 return;
@@ -244,10 +305,12 @@ namespace SpiritMod.States
                 _fallbackCastStartTime = Time.time;
             }
 
-            float elapsed = Time.time - _fallbackCastStartTime;
             Mathf.Max(0.1f, ctx.Config.DodgeFallbackDelay);
 
-            switch (CombatService.TryAutoDashEvade(player, currentTarget, ctx.Config, ctx.Status))
+            CombatService.DodgeResult dodgeResult =
+                CombatService.TryAutoDashEvade(player, currentTarget, ctx.Config, ctx.Status);
+
+            switch (dodgeResult)
             {
                 case CombatService.DodgeResult.None:
                 case CombatService.DodgeResult.Pending:
