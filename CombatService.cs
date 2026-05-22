@@ -684,16 +684,22 @@ namespace SpiritMod
         // Token: 0x06000052 RID: 82 RVA: 0x00003E44 File Offset: 0x00002044
         private static bool IsManagedBuffSlot(BotConfig cfg, int slot, SkillConfig config)
         {
-            if (CombatService.IsBuffSkill(config) || CombatService.IsBondSkill(config))
-            {
-                return true;
-            }
-            if (cfg == null)
-            {
+            if (config == null)
                 return false;
-            }
+
+            if (BuffMaintenanceRules.IsExcludedBuffMaintenanceSkill(config))
+                return false;
+
+            if (CombatService.IsBuffSkill(config) || CombatService.IsBondSkill(config))
+                return true;
+
+            if (cfg == null)
+                return false;
+
             cfg.EnsureArrays();
-            return slot >= 0 && slot < cfg.TreatAsBuff.Length && cfg.TreatAsBuff[slot];
+            return slot >= 0 &&
+                   slot < cfg.TreatAsBuff.Length &&
+                   cfg.TreatAsBuff[slot];
         }
 
         // Token: 0x06000053 RID: 83 RVA: 0x00003E7C File Offset: 0x0000207C
