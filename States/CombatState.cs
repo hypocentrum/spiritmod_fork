@@ -207,8 +207,8 @@ namespace SpiritMod.States
             _lastDamageAction = actionName;
             _waitingForDamageAfterAction = true;
 
-            MelonLogger.Msg(
-                "[Combat] Watching target HP after " + actionName + ". Start HP=" + currentHp);
+            //MelonLogger.Msg(
+            //    "[Combat] Watching target HP after " + actionName + ". Start HP=" + currentHp);
         }
 
         private bool CheckNoDamageAfterAction(BotContext ctx, BaseUnitController currentTarget)
