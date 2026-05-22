@@ -245,7 +245,7 @@ namespace SpiritMod.States
                 BlacklistDurationSeconds,
                 reason);
 
-            MelonLogger.Warning("[Combat] Blacklisted target. " + reason);
+            //MelonLogger.Warning("[Combat] Blacklisted target. " + reason);
 
             BotController.ClearTarget();
             ResetDamageWatch();
