@@ -129,27 +129,21 @@ namespace SpiritMod
 
         // Token: 0x17000026 RID: 38
         // (get) Token: 0x060000CE RID: 206 RVA: 0x0000A752 File Offset: 0x00008952
-        public static Il2CppSystem.Collections.Generic.List<StatFilterRule> MainStatRules
+        public static System.Collections.Generic.List<StatFilterRule> MainStatRules
         {
             get
             {
-                Il2CppSystem.Collections.Generic.List<StatFilterRule> result = new Il2CppSystem.Collections.Generic.List<StatFilterRule>();
-                foreach (var kvp in LootFilterService._data.MainStatRules)
-                    result.Add(kvp);
-                return result;
+                return LootFilterService._data.MainStatRules;
             }
         }
 
         // Token: 0x17000027 RID: 39
         // (get) Token: 0x060000CF RID: 207 RVA: 0x0000A75E File Offset: 0x0000895E
-        public static Il2CppSystem.Collections.Generic.List<StatFilterRule> SecondaryStatRules
+        public static System.Collections.Generic.List<StatFilterRule> SecondaryStatRules
         {
             get
             {
-                Il2CppSystem.Collections.Generic.List<StatFilterRule> result = new Il2CppSystem.Collections.Generic.List<StatFilterRule>();
-                foreach (var kvp in LootFilterService._data.SecondaryStatRules)
-                    result.Add(kvp);
-                return result;
+                return LootFilterService._data.SecondaryStatRules;
             }
         }
 

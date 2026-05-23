@@ -747,7 +747,7 @@ namespace SpiritMod
                     }
                     if (skillStatus.Duration <= 0f)
                     {
-                        return false;
+                        return true;
                     }
                 }
             }
@@ -814,28 +814,6 @@ namespace SpiritMod
                 SkillConfig config = skillState.Config;
                 if (config == null)
                     return false;
-
-                // Mount/Gryphon Riding does not always appear as a normal buff effect.
-                // Treat the mount skill as active when the player is already mounting.
-                try
-                {
-                    if (CombatService.IsMountSkill(config) ||
-                        string.Equals(config.Id, "MountMastery", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(config.DisplayName, "Gryphon Riding", StringComparison.OrdinalIgnoreCase))
-                    {
-                        BaseUnitController mountUnit = player.Cast<BaseUnitController>();
-                        SummoningComponent summoning = mountUnit != null ? mountUnit.Summoning : null;
-
-                        if (summoning != null && summoning.IsMounting)
-                        {
-                            remainingSeconds = -1f;
-                            return true;
-                        }
-                    }
-                }
-                catch
-                {
-                }
 
                 StatusComponent status = null;
 

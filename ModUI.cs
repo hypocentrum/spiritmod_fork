@@ -921,7 +921,11 @@ namespace SpiritMod
 			{
 				GUI.Label(new Rect(0f, num, 700f, 25f), "MAIN STAT  (any rule matches = keep)", ModUI._sectionStyle);
 				num += 30f;
-				ModUI.DrawStatRuleGroup(ref num, "main", LootFilterService.MainStatRules, LootFilterService.MainStatTypes, 3, delegate
+				Il2CppSystem.Collections.Generic.List<StatFilterRule> mainStats = new Il2CppSystem.Collections.Generic.List<StatFilterRule>();
+				foreach(var rule in LootFilterService.MainStatRules)
+                    mainStats.Add(rule);
+
+                ModUI.DrawStatRuleGroup(ref num, "main", mainStats, LootFilterService.MainStatTypes, 3, delegate
 				{
 					LootFilterService.AddMainStatRule();
 				}, delegate(int i)
@@ -941,7 +945,10 @@ namespace SpiritMod
 					LootFilterService.SecondaryMinMatch++;
 				}
 				num += 30f;
-				ModUI.DrawStatRuleGroup(ref num, "sec", LootFilterService.SecondaryStatRules, LootFilterService.SecondaryStatTypes, 200, delegate
+                Il2CppSystem.Collections.Generic.List<StatFilterRule> secStats = new Il2CppSystem.Collections.Generic.List<StatFilterRule>();
+                foreach (var rule in LootFilterService.SecondaryStatRules)
+                    secStats.Add(rule);
+                ModUI.DrawStatRuleGroup(ref num, "sec", secStats, LootFilterService.SecondaryStatTypes, 200, delegate
 				{
 					LootFilterService.AddSecondaryStatRule();
 				}, delegate(int i)

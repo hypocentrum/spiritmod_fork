@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -435,6 +435,7 @@
 		<Compile Include="BotStatus.cs" />
 		<Compile Include="BuffLiveDumpService.cs" />
 		<Compile Include="BuffMaintenanceRules.cs" />
+		<Compile Include="BuffMaintenanceRuntimeRules.cs" />
 		<Compile Include="CachedRef.cs" />
 		<Compile Include="Cheats.cs" />
 		<Compile Include="CombatService.cs" />
