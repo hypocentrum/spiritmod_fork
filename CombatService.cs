@@ -261,7 +261,8 @@ namespace SpiritMod
                 return false;
             }
             string displayName = cfg.DisplayName;
-            return !string.IsNullOrEmpty(displayName) && displayName.Equals("Summon Mount", StringComparison.OrdinalIgnoreCase);
+            System.Collections.Generic.List<string> mountList = ["Summon Mount", "Gryphon Riding", "Combat Mount"];
+            return !string.IsNullOrEmpty(displayName) && mountList.Contains(displayName);
         }
 
         // Token: 0x06000043 RID: 67 RVA: 0x000034CC File Offset: 0x000016CC
@@ -690,7 +691,7 @@ namespace SpiritMod
             if (BuffMaintenanceRules.IsExcludedBuffMaintenanceSkill(config))
                 return false;
 
-            if (CombatService.IsBuffSkill(config) || CombatService.IsBondSkill(config))
+            if (CombatService.IsBuffSkill(config) || CombatService.IsBondSkill(config) || config.DisplayName.Contains("Haste"))
                 return true;
 
             if (cfg == null)
