@@ -193,7 +193,7 @@ namespace SpiritMod
 									else
 									{
 										int rarity = lootFilterEntry.Rarity;
-                                        Il2CppSystem.Collections.Generic.Dictionary<string, int> substats = LootFilterService.ExtractSubstats(t);
+                                        System.Collections.Generic.Dictionary<string, int> substats = LootFilterService.ExtractSubstats(t);
 										string statsInfo = LootFilterService.FormatSubstats(substats);
 										ValueTuple<bool, string> valueTuple = LootFilterService.ShouldSellWithReason(text, rarity, substats);
 										bool item = valueTuple.Item1;

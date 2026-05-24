@@ -727,7 +727,7 @@ namespace SpiritMod
 					{
 						text += "[SUM]";
 					}
-					if (skillSlotInfo.IsBuff)
+					if (skillSlotInfo.IsBuff || skillSlotInfo.Name.ToUpper().Contains("HASTE"))
 					{
 						text += "[BUF]";
 					}
@@ -818,7 +818,7 @@ namespace SpiritMod
 				for (int k = 0; k < 20; k++)
 				{
 					SkillSlotInfo skillSlotInfo2 = array[k];
-					if (skillSlotInfo2.Assigned && (skillSlotInfo2.IsBuff || skillSlotInfo2.IsBond || config.TreatAsBuff[k]))
+					if (skillSlotInfo2.Assigned && (skillSlotInfo2.IsBuff || skillSlotInfo2.Name.ToUpper().Contains("HASTE") || skillSlotInfo2.IsBond || config.TreatAsBuff[k]))
 					{
 						DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(3, 2);
 						defaultInterpolatedStringHandler.AppendLiteral("[");
@@ -889,20 +889,20 @@ namespace SpiritMod
 			ModUI.SectionHeaderManual(ref num, "SELL FILTER");
 			LootFilterService.SellFilterEnabled = GUI.Toggle(new Rect(0f, num, 300f, 30f), LootFilterService.SellFilterEnabled, "Enable Sell Filter");
 			num += 40f;
-			bool[] sellRarityEnabled = LootFilterService.SellRarityEnabled;
-			for (int k = 0; k < 4; k++)
-			{
-				float num2 = (float)(k * 200);
-				Color contentColor = GUI.contentColor;
-				GUI.contentColor = array2[k];
-				bool flag = sellRarityEnabled[k];
-				sellRarityEnabled[k] = GUI.Toggle(new Rect(num2, num, 180f, 30f), sellRarityEnabled[k], "Sell " + array[k]);
-				if (sellRarityEnabled[k] != flag)
-				{
-					LootFilterService.MarkDirty();
-				}
-				GUI.contentColor = contentColor;
-			}
+			//bool[] sellRarityEnabled = LootFilterService.SellRarityEnabled;
+			//for (int k = 0; k < 4; k++)
+			//{
+			//	float num2 = (float)(k * 200);
+			//	Color contentColor = GUI.contentColor;
+			//	GUI.contentColor = array2[k];
+			//	bool flag = sellRarityEnabled[k];
+			//	sellRarityEnabled[k] = GUI.Toggle(new Rect(num2, num, 180f, 30f), sellRarityEnabled[k], "Sell " + array[k]);
+			//	if (sellRarityEnabled[k] != flag)
+			//	{
+			//		LootFilterService.MarkDirty();
+			//	}
+			//	GUI.contentColor = contentColor;
+			//}
 			num += 40f;
 			int value = LootFilterService.SellOverrideCount(SellOverride.AlwaysSell);
 			int value2 = LootFilterService.SellOverrideCount(SellOverride.NeverSell);
@@ -917,7 +917,7 @@ namespace SpiritMod
 			ModUI.SectionHeaderManual(ref num, "STAT FILTER");
 			LootFilterService.StatFilterEnabled = GUI.Toggle(new Rect(0f, num, 350f, 30f), LootFilterService.StatFilterEnabled, "Enable Stat Filter (Equipment & Artifacts)");
 			num += 40f;
-			if (LootFilterService.StatFilterEnabled)
+			if (false) //(LootFilterService.StatFilterEnabled)
 			{
 				GUI.Label(new Rect(0f, num, 700f, 25f), "MAIN STAT  (any rule matches = keep)", ModUI._sectionStyle);
 				num += 30f;
@@ -1118,7 +1118,7 @@ namespace SpiritMod
 			num += 40f;
 			num += 45f;
 			num += 40f;
-			if (LootFilterService.StatFilterEnabled)
+			if (false)// (LootFilterService.StatFilterEnabled)
 			{
 				num += 30f;
 				num += (float)(LootFilterService.MainStatRules.Count * 35);

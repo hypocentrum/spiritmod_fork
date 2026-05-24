@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Il2Cpp;
-using Il2CppSystem.Collections.Generic;
 using MelonLoader;
 
 namespace SpiritMod
@@ -38,16 +37,8 @@ namespace SpiritMod
 
         // Token: 0x17000020 RID: 32
         // (get) Token: 0x060000C5 RID: 197 RVA: 0x0000A693 File Offset: 0x00008893
-        public static System.Collections.Generic.Dictionary<string, LootFilterEntry> Items
-        {
-            get
-            {
-                //Il2CppSystem.Collections.Generic.Dictionary<string, LootFilterEntry> result = new Il2CppSystem.Collections.Generic.Dictionary<string, LootFilterEntry>();
-                //foreach(var kvp in LootFilterService._data.Items)
-                //    result.Add(kvp.Key, kvp.Value);
-                return LootFilterService._data.Items;
-            }
-        }
+
+        public static System.Collections.Generic.Dictionary<string, LootFilterEntry> Items => _data.Items;
 
         // Token: 0x17000021 RID: 33
         // (get) Token: 0x060000C6 RID: 198 RVA: 0x0000A69F File Offset: 0x0000889F
@@ -129,23 +120,11 @@ namespace SpiritMod
 
         // Token: 0x17000026 RID: 38
         // (get) Token: 0x060000CE RID: 206 RVA: 0x0000A752 File Offset: 0x00008952
-        public static System.Collections.Generic.List<StatFilterRule> MainStatRules
-        {
-            get
-            {
-                return LootFilterService._data.MainStatRules;
-            }
-        }
+        public static System.Collections.Generic.List<StatFilterRule> MainStatRules => _data.MainStatRules;
 
         // Token: 0x17000027 RID: 39
         // (get) Token: 0x060000CF RID: 207 RVA: 0x0000A75E File Offset: 0x0000895E
-        public static System.Collections.Generic.List<StatFilterRule> SecondaryStatRules
-        {
-            get
-            {
-                return LootFilterService._data.SecondaryStatRules;
-            }
-        }
+        public static System.Collections.Generic.List<StatFilterRule> SecondaryStatRules => _data.SecondaryStatRules;
 
         // Token: 0x060000D0 RID: 208 RVA: 0x0000A76C File Offset: 0x0000896C
         public static bool ShouldSell(string name, int rarity)
@@ -169,7 +148,7 @@ namespace SpiritMod
             return rarity >= 0 && rarity < LootFilterService._data.SellRarityEnabled.Length && LootFilterService._data.SellRarityEnabled[rarity];
         }
 
-        public static ValueTuple<bool, string> ShouldSellWithReason(string name, int rarity, Il2CppSystem.Collections.Generic.Dictionary<string, int> substats)
+        public static ValueTuple<bool, string> ShouldSellWithReason(string name, int rarity, Dictionary<string, int> substats)
         {
             if (!LootFilterService._data.SellFilterEnabled)
             {
@@ -403,7 +382,7 @@ namespace SpiritMod
         }
 
         // Token: 0x060000DB RID: 219 RVA: 0x0000ADB0 File Offset: 0x00008FB0
-        public static bool PassesStatFilter(Il2CppSystem.Collections.Generic.Dictionary<string, int> substats)
+        public static bool PassesStatFilter(Dictionary<string, int> substats)
         {
             if (!LootFilterService._data.StatFilterEnabled)
             {
@@ -450,14 +429,14 @@ namespace SpiritMod
         }
 
         // Token: 0x060000DC RID: 220 RVA: 0x0000AF00 File Offset: 0x00009100
-        public static string FormatSubstats(Il2CppSystem.Collections.Generic.Dictionary<string, int> substats)
+        public static string FormatSubstats(Dictionary<string, int> substats)
         {
             if (substats == null || substats.Count == 0)
             {
                 return "";
             }
             StringBuilder stringBuilder = new StringBuilder();
-            foreach (Il2CppSystem.Collections.Generic.KeyValuePair<string, int> keyValuePair in substats)
+            foreach (KeyValuePair<string, int> keyValuePair in substats)
             {
                 if (stringBuilder.Length > 0)
                 {
@@ -615,7 +594,7 @@ namespace SpiritMod
         }
 
         // Token: 0x060000E4 RID: 228 RVA: 0x0000B20C File Offset: 0x0000940C
-        public static Il2CppSystem.Collections.Generic.Dictionary<string, int> ExtractSubstats(InventoryItemData item)
+        public static Dictionary<string, int> ExtractSubstats(InventoryItemData item)
         {
             if (item == null)
             {
@@ -626,12 +605,18 @@ namespace SpiritMod
                 EquipData equipData = item.TryCast<EquipData>();
                 if (equipData != null)
                 {
-                    return LootFilterService.ReadStatValueList(Formula.GetSubstats(equipData));
+                    var x = Formula.GetSubstats(equipData);
+                    List<StatValue> statValues = new List<StatValue>();
+                    foreach(var val in x)
+                        statValues.Add(val);
+                    return LootFilterService.ReadStatValueList(statValues);
                 }
                 ArtifactData artifactData = item.TryCast<ArtifactData>();
                 if (artifactData != null)
                 {
-                    return LootFilterService.ReadStatValueList(Formula.GetSubstats(artifactData));
+                    var x = Formula.GetSubstats(artifactData);
+                    List<StatValue> statValues = new List<StatValue>();
+                    return LootFilterService.ReadStatValueList(statValues);
                 }
             }
             catch (Exception ex)
@@ -642,13 +627,13 @@ namespace SpiritMod
         }
 
         // Token: 0x060000E5 RID: 229 RVA: 0x0000B27C File Offset: 0x0000947C
-        private static Il2CppSystem.Collections.Generic.Dictionary<string, int> ReadStatValueList(Il2CppSystem.Collections.Generic.List<StatValue> statList)
+        private static Dictionary<string, int> ReadStatValueList(List<StatValue> statList)
         {
             if (statList == null || statList.Count == 0)
             {
                 return null;
             }
-            Il2CppSystem.Collections.Generic.Dictionary<string, int> dictionary = new Il2CppSystem.Collections.Generic.Dictionary<string, int>();
+            Dictionary<string, int> dictionary = new Dictionary<string, int>();
             for (int i = 0; i < statList.Count; i++)
             {
                 try
