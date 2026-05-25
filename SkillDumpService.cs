@@ -330,10 +330,10 @@ namespace SpiritMod
                 sb.Append(totalChance.ToString("F1"));
                 sb.Append(" stacks=");
                 sb.Append(SafeValue(() => skillStatus.Stacks, 0));
-                sb.Append("+");
-                sb.Append(SafeValue(() => skillStatus.StacksLv, 0));
-                sb.Append("/lv fixed=");
-                sb.Append(SafeValue(() => skillStatus.FixedDuration, false));
+                //sb.Append("+");
+                //sb.Append(SafeValue(() => skillStatus.StacksLv, 0));
+                //sb.Append("/lv fixed=");
+                //sb.Append(SafeValue(() => skillStatus.FixedDuration, false));
                 sb.Append(")");
             }
 

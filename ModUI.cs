@@ -889,20 +889,20 @@ namespace SpiritMod
 			ModUI.SectionHeaderManual(ref num, "SELL FILTER");
 			LootFilterService.SellFilterEnabled = GUI.Toggle(new Rect(0f, num, 300f, 30f), LootFilterService.SellFilterEnabled, "Enable Sell Filter");
 			num += 40f;
-			//bool[] sellRarityEnabled = LootFilterService.SellRarityEnabled;
-			//for (int k = 0; k < 4; k++)
-			//{
-			//	float num2 = (float)(k * 200);
-			//	Color contentColor = GUI.contentColor;
-			//	GUI.contentColor = array2[k];
-			//	bool flag = sellRarityEnabled[k];
-			//	sellRarityEnabled[k] = GUI.Toggle(new Rect(num2, num, 180f, 30f), sellRarityEnabled[k], "Sell " + array[k]);
-			//	if (sellRarityEnabled[k] != flag)
-			//	{
-			//		LootFilterService.MarkDirty();
-			//	}
-			//	GUI.contentColor = contentColor;
-			//}
+			bool[] sellRarityEnabled = LootFilterService.SellRarityEnabled;
+			for (int k = 0; k < 4; k++)
+			{
+				float num2 = (float)(k * 200);
+				Color contentColor = GUI.contentColor;
+				GUI.contentColor = array2[k];
+				bool flag = sellRarityEnabled[k];
+				sellRarityEnabled[k] = GUI.Toggle(new Rect(num2, num, 180f, 30f), sellRarityEnabled[k], "Sell " + array[k]);
+				if (sellRarityEnabled[k] != flag)
+				{
+					LootFilterService.MarkDirty();
+				}
+				GUI.contentColor = contentColor;
+			}
 			num += 40f;
 			int value = LootFilterService.SellOverrideCount(SellOverride.AlwaysSell);
 			int value2 = LootFilterService.SellOverrideCount(SellOverride.NeverSell);

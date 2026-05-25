@@ -156,7 +156,7 @@ namespace SpiritMod
 				}
 				else
 				{
-					player.RpcWriter___FullHealByHealer___2166136261();
+					player.FullHealByHealer();
 					MelonLogger.Msg("[Cheats] FullHeal RPC invoked");
 				}
 			}
