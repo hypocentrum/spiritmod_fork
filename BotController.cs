@@ -234,12 +234,22 @@ namespace SpiritMod
                 return;
             }
 
-            if (StuckRecoveryService.Tick(_ctx))
+            bool skipStuckRecovery =
+    _status.State == BotState.Combat &&
+    CombatService.IsTargetAlive(_currentTarget);
+
+            if (skipStuckRecovery)
+            {
+                // Important: prevent the old countdown from firing immediately after combat.
+                StuckRecoveryService.Reset();
+            }
+            else if (StuckRecoveryService.Tick(_ctx))
             {
                 _status.TickBenchmark(deltaTime);
                 return;
             }
 
+            // then keep the existing line after it:
             _activeState?.Tick(_ctx);
             _status.TickBenchmark(deltaTime);
         }
