@@ -717,7 +717,9 @@ namespace SpiritMod
 			num4 += 30f;
 			GUI.DrawTexture(new Rect(0f, num4, 810f, 1f), ModUI._barBgTex);
 			num4 += 5f;
-			for (int j = 0; j < 20; j++)
+
+            string[] listBuffs = ["Haste", "Benediction", "Divine Grace"];
+            for (int j = 0; j < 20; j++)
 			{
 				SkillSlotInfo skillSlotInfo = skillSlotInfos[j];
 				if (skillSlotInfo.Assigned)
@@ -727,7 +729,7 @@ namespace SpiritMod
 					{
 						text += "[SUM]";
 					}
-					if (skillSlotInfo.IsBuff || skillSlotInfo.Name.ToUpper().Contains("HASTE"))
+					if (skillSlotInfo.IsBuff || listBuffs.Contains(skillSlotInfo.Name))
 					{
 						text += "[BUF]";
 					}
@@ -818,7 +820,7 @@ namespace SpiritMod
 				for (int k = 0; k < 20; k++)
 				{
 					SkillSlotInfo skillSlotInfo2 = array[k];
-					if (skillSlotInfo2.Assigned && (skillSlotInfo2.IsBuff || skillSlotInfo2.Name.ToUpper().Contains("HASTE") || skillSlotInfo2.IsBond || config.TreatAsBuff[k]))
+					if (skillSlotInfo2.Assigned && (skillSlotInfo2.IsBuff || listBuffs.Contains(skillSlotInfo2.Name) || skillSlotInfo2.IsBond || config.TreatAsBuff[k]))
 					{
 						DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(3, 2);
 						defaultInterpolatedStringHandler.AppendLiteral("[");
@@ -1275,61 +1277,93 @@ namespace SpiritMod
 			y += 35f;
 		}
 
-		// Token: 0x0600008D RID: 141 RVA: 0x00008F18 File Offset: 0x00007118
-		private static float CalculateBotContentHeight(BotStatus status)
-		{
-			BotConfig config = BotController.Config;
-			float num = 0f;
-			num += 45f;
-			num += 35f;
-			if (status.State != BotState.Disabled)
-			{
-				if (status.PlayerMaxHp > 0)
-				{
-					num += 35f;
-				}
-				num += 35f;
-				if (status.TargetMaxHp > 0)
-				{
-					num += 35f;
-				}
-				num += 35f;
-				num += 40f;
-			}
-			else
-			{
-				num += 15f;
-			}
-			num += 45f;
-			num += 35f;
-			num += 105f;
-			num += 15f;
-			num += 45f;
-			num += 35f;
-			num += 70f;
-			num += 15f;
-			num += 45f;
-			num += 35f;
-			if (config.EnableAutoStore && status.State != BotState.Disabled)
-			{
-				num += 35f;
-			}
-			num += 40f;
-			num += 45f;
-			num += 35f;
-			if (config.EnableAutoSell && status.State != BotState.Disabled)
-			{
-				num += 35f;
-			}
-			num += 40f;
-			num += 45f;
-			num += 35f;
-			num += 35f;
-			return num + 35f;
-		}
+        // Token: 0x0600008D RID: 141 RVA: 0x00008F18 File Offset: 0x00007118
+        private static float CalculateBotContentHeight(BotStatus status)
+        {
+            float num = 0f;
 
-		// Token: 0x0600008E RID: 142 RVA: 0x0000904C File Offset: 0x0000724C
-		private static string StateString(BotState s)
+            // STATUS header
+            num += 45f;
+
+            // State row
+            num += 35f;
+
+            if (status != null && status.State != BotState.Disabled)
+            {
+                // Player HP bar, if visible
+                if (status.PlayerMaxHp > 0)
+                    num += 35f;
+
+                // Target row
+                num += 35f;
+
+                // Target HP bar, if visible
+                if (status.TargetMaxHp > 0)
+                    num += 35f;
+
+                // Timers row
+                num += 35f;
+
+                // Counters row
+                num += 35f;
+
+                // Request telemetry row
+                num += 40f;
+            }
+            else
+            {
+                num += 15f;
+            }
+
+            // CONFIGURATION
+            num += 45f; // section header
+            num += 35f; // AFK toggle
+            num += 35f; // Action Interval
+            num += 35f; // Attack Interval
+            num += 35f; // Search Range
+            num += 15f;
+
+            // LOOTING
+            num += 45f; // section header
+            num += 35f; // Enable Looting
+            num += 35f; // Loot Delay
+            num += 35f; // Loot Range
+            num += 15f;
+
+            // AUTO-STORE
+            num += 45f; // section header
+            num += 35f; // Enable Auto-Store
+            if (BotController.Config != null && BotController.Config.EnableAutoStore && status != null && status.State != BotState.Disabled)
+                num += 35f; // Store status row
+            num += 40f; // Store Now button/status row
+
+            // AUTO-SELL
+            num += 45f; // section header
+            num += 35f; // Enable Auto-Sell
+            if (BotController.Config != null && BotController.Config.EnableAutoSell && status != null && status.State != BotState.Disabled)
+                num += 35f; // Sell status row
+            num += 40f; // Sell Now button/status row
+
+            // SKILLS
+            num += 45f; // section header
+            num += 35f; // Enable Auto-Skills
+            num += 35f; // Skill Interval
+            num += 35f; // "Configure skills" label
+
+            // BOT AI / BOT BEHAVIOUR
+            num += 45f; // section header
+            num += 30f; // Target Priority row
+            num += 35f; // Modes description row
+
+            // Important: bottom padding so last row is not hidden behind clipping / scrollbar limit
+            num += 60f;
+
+            return num;
+        }
+
+
+        // Token: 0x0600008E RID: 142 RVA: 0x0000904C File Offset: 0x0000724C
+        private static string StateString(BotState s)
 		{
 			string result;
 			switch (s)

@@ -402,6 +402,30 @@ namespace SpiritMod
             }
             return result;
         }
+        private static bool CanUseSkillNow(SkillsComponent skills, SkillState state)
+        {
+            try
+            {
+                if (skills == null || state == null)
+                    return false;
+
+                if (skills.IsCasting)
+                    return false;
+
+                if (state.IsOnCooldown)
+                    return false;
+
+                if (state.Cost > skills.Mana)
+                    return false;
+
+                // Important: per-skill validation, not CanCast(null)
+                return skills.CanCast(state);
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         // Token: 0x0600004B RID: 75 RVA: 0x00003710 File Offset: 0x00001910
         private static bool TryCastSkillInternal(PlayerController player, BotConfig cfg, BotStatus status, bool healingOnly)
@@ -417,11 +441,11 @@ namespace SpiritMod
                 CombatTelemetryService.RecordBlocked("casting");
                 return false;
             }
-            if (!skills.CanCast(null))
-            {
-                CombatTelemetryService.RecordBlocked("cant_cast");
-                return false;
-            }
+            //if (!skills.CanCast(null))
+            //{
+            //    CombatTelemetryService.RecordBlocked("cant_cast");
+            //    return false;
+            //}
             int mana = skills.Mana;
             System.Collections.Generic.List<SkillData> assignedSkillList = CombatService.GetAssignedSkillList(player);
             if (assignedSkillList == null || assignedSkillList.Count == 0)
@@ -442,7 +466,7 @@ namespace SpiritMod
                         if (!string.IsNullOrEmpty(id))
                         {
                             SkillState anySkill = skills.GetAnySkill(id);
-                            if (anySkill != null && !anySkill.IsOnCooldown && anySkill.Cost <= mana)
+                            if (CanUseSkillNow(skills, anySkill))
                             {
                                 SkillConfig config = anySkill.Config;
                                 if (!(config == null))
@@ -685,13 +709,14 @@ namespace SpiritMod
         // Token: 0x06000052 RID: 82 RVA: 0x00003E44 File Offset: 0x00002044
         private static bool IsManagedBuffSlot(BotConfig cfg, int slot, SkillConfig config)
         {
+            string[] listBuffs = ["Haste", "Benediction", "Divine Grace"];
             if (config == null)
                 return false;
 
             if (BuffMaintenanceRules.IsExcludedBuffMaintenanceSkill(config))
                 return false;
 
-            if (CombatService.IsBuffSkill(config) || CombatService.IsBondSkill(config) || config.DisplayName.Contains("Haste"))
+            if (CombatService.IsBuffSkill(config) || CombatService.IsBondSkill(config) || listBuffs.Contains(config.DisplayName))
                 return true;
 
             if (cfg == null)
