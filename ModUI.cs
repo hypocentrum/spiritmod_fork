@@ -718,7 +718,7 @@ namespace SpiritMod
 			GUI.DrawTexture(new Rect(0f, num4, 810f, 1f), ModUI._barBgTex);
 			num4 += 5f;
 
-            string[] listBuffs = ["Haste", "Benediction", "Divine Grace"];
+            string[] listBuffs = ["Haste", "Benediction", "Divine Grace", "Conviction Aura", "Vitality Aura", "Defiance Aura"];
             for (int j = 0; j < 20; j++)
 			{
 				SkillSlotInfo skillSlotInfo = skillSlotInfos[j];

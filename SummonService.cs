@@ -126,7 +126,7 @@ namespace SpiritMod
 								{
 									result = true;
 								}
-								else if (config.ExclusiveType == (SkillCategory)4)
+								else if (config.ExclusiveType == SkillCategory.Summon)
 								{
 									result = SummonService.HasAlivePrimarySummon(player);
 								}

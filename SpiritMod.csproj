@@ -434,7 +434,6 @@
 		<Compile Include="BotState.cs" />
 		<Compile Include="BotStatus.cs" />
 		<Compile Include="BuffLiveDumpService.cs" />
-		<Compile Include="BuffMaintenanceRules.cs" />
 		<Compile Include="BuffMaintenanceRuntimeRules.cs" />
 		<Compile Include="CachedRef.cs" />
 		<Compile Include="Cheats.cs" />

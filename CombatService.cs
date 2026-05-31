@@ -261,8 +261,8 @@ namespace SpiritMod
                 return false;
             }
             string displayName = cfg.DisplayName;
-            System.Collections.Generic.List<string> mountList = ["Summon Mount", "Gryphon Riding", "Combat Mount"];
-            return !string.IsNullOrEmpty(displayName) && mountList.Contains(displayName);
+            System.Collections.Generic.List<string> mountList = ["Summon Mount"];
+            return (!string.IsNullOrEmpty(displayName) && mountList.Contains(displayName));
         }
 
         // Token: 0x06000043 RID: 67 RVA: 0x000034CC File Offset: 0x000016CC
@@ -281,7 +281,7 @@ namespace SpiritMod
                 return false;
             }
             int castType = (int)cfg.CastType;
-            return castType == 3 || (castType == 0 && (int)cfg.TargetType == 3);
+            return castType == 3 || (castType == 0 && (int)cfg.TargetType == 3) || cfg.CastType == CastType.Toggle;
         }
 
         // Token: 0x06000044 RID: 68 RVA: 0x00003513 File Offset: 0x00001713
@@ -316,44 +316,6 @@ namespace SpiritMod
                 skillState,
                 out _
             );
-        }
-        // Token: 0x06000047 RID: 71 RVA: 0x000035F0 File Offset: 0x000017F0
-        private static bool AnyEffectPresent(
-    Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays,
-    Il2CppSystem.Collections.Generic.List<SkillStatus> effects)
-        {
-            if (displays == null || effects == null || effects.Count == 0)
-                return false;
-
-            for (int i = 0; i < effects.Count; i++)
-            {
-                SkillStatus effect = effects[i];
-
-                if (effect == null)
-                    continue;
-
-                string id = effect.Id;
-
-                if (string.IsNullOrEmpty(id))
-                    continue;
-
-                foreach (var pair in displays)
-                {
-                    string activeId = pair.key?.ToString() ?? "";
-
-                    if (string.IsNullOrEmpty(activeId))
-                        continue;
-
-                    if (activeId.Equals(id, StringComparison.OrdinalIgnoreCase) ||
-                        activeId.Contains(id) ||
-                        id.Contains(activeId))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
         }
 
         // Token: 0x06000048 RID: 72 RVA: 0x00003644 File Offset: 0x00001844
@@ -483,6 +445,7 @@ namespace SpiritMod
                                                 continue;
                                             }
                                         }
+                                        
                                         if ((!CombatService.IsSummonSkill(config) || !SummonService.IsSlotSatisfied(player, cfg, i)) && (!CombatService.IsManagedBuffSlot(cfg, i, config) || !CombatService.ShouldSkipBuffCast(player, anySkill, cfg, i)))
                                         {
                                             int castType = (int)config.CastType;
@@ -709,13 +672,9 @@ namespace SpiritMod
         // Token: 0x06000052 RID: 82 RVA: 0x00003E44 File Offset: 0x00002044
         private static bool IsManagedBuffSlot(BotConfig cfg, int slot, SkillConfig config)
         {
-            string[] listBuffs = ["Haste", "Benediction", "Divine Grace"];
+            string[] listBuffs = ["Haste", "Benediction", "Divine Grace", "Conviction Aura", "Vitality Aura", "Defiance Aura"];
             if (config == null)
                 return false;
-
-            if (BuffMaintenanceRules.IsExcludedBuffMaintenanceSkill(config))
-                return false;
-
             if (CombatService.IsBuffSkill(config) || CombatService.IsBondSkill(config) || listBuffs.Contains(config.DisplayName))
                 return true;
 
@@ -746,6 +705,7 @@ namespace SpiritMod
             {
                 return flag;
             }
+            
             return flag && num > CombatService.GetBuffRefreshLeadSeconds(cfg, slot);
         }
 
@@ -871,11 +831,12 @@ namespace SpiritMod
                 // - skill id: Conviction
                 // - display name: Conviction Aura
                 // - status effect ids: Might, SpearQuicken, HolyShield, Endure, etc.
+
                 CombatService.MatchBuffIdInAllKnownStatusDictionaries(
-                    status,
-                    config.Id,
-                    ref foundAny,
-                    ref maxRemaining);
+                        status,
+                        config.Id,
+                        ref foundAny,
+                        ref maxRemaining);
 
                 CombatService.MatchBuffIdInAllKnownStatusDictionaries(
                     status,
@@ -894,6 +855,9 @@ namespace SpiritMod
                     config.SelfStatusEffects,
                     ref foundAny,
                     ref maxRemaining);
+
+
+
 
                 if (!foundAny)
                     return false;
@@ -926,7 +890,6 @@ namespace SpiritMod
                 string id = effect.Id;
                 if (string.IsNullOrEmpty(id))
                     continue;
-
                 CombatService.MatchBuffIdInAllKnownStatusDictionaries(
                     status,
                     id,
@@ -943,7 +906,6 @@ namespace SpiritMod
         {
             if (status == null || string.IsNullOrEmpty(expectedId))
                 return;
-
             try
             {
                 CombatService.MatchBuffIdInDictionary(
@@ -996,7 +958,10 @@ namespace SpiritMod
                 {
                     foundAny = true;
                     StatusEffectState state = dictionary[expectedId];
-                    maxRemaining = Math.Max(maxRemaining, CombatService.ReadBuffDurationSeconds(state));
+                    if (state.InfiniteDuration)
+                        maxRemaining = -1f;
+                    else
+                        maxRemaining = Math.Max(maxRemaining, CombatService.ReadBuffDurationSeconds(state));
                     return;
                 }
             }
@@ -1011,53 +976,13 @@ namespace SpiritMod
                     string activeId = pair.key != null ? pair.key.ToString() : "";
                     if (!CombatService.BuffIdsMatch(activeId, expectedId))
                         continue;
-
                     foundAny = true;
-                    maxRemaining = Math.Max(
-                        maxRemaining,
-                        CombatService.ReadBuffDurationSeconds(pair.value));
-                }
-            }
-            catch
-            {
-            }
-        }
-
-        private static void MatchBuffIdInDictionary(
-            Il2CppSystem.Collections.Generic.Dictionary<string, SkillState> dictionary,
-            string expectedId,
-            ref bool foundAny,
-            ref float maxRemaining)
-        {
-            if (dictionary == null || string.IsNullOrEmpty(expectedId))
-                return;
-
-            try
-            {
-                if (dictionary.ContainsKey(expectedId))
-                {
-                    foundAny = true;
-                    var state = dictionary[expectedId];
-                    maxRemaining = Math.Max(maxRemaining, CombatService.ReadBuffDurationSeconds(state));
-                    return;
-                }
-            }
-            catch
-            {
-            }
-
-            try
-            {
-                foreach (var pair in dictionary)
-                {
-                    string activeId = pair.key != null ? pair.key.ToString() : "";
-                    if (!CombatService.BuffIdsMatch(activeId, expectedId))
-                        continue;
-
-                    foundAny = true;
-                    maxRemaining = Math.Max(
-                        maxRemaining,
-                        CombatService.ReadBuffDurationSeconds(pair.value));
+                    if (pair.value.InfiniteDuration)
+                        maxRemaining = -1f;
+                    else
+                        maxRemaining = Math.Max(
+                            maxRemaining,
+                            CombatService.ReadBuffDurationSeconds(pair.value));
                 }
             }
             catch
@@ -1082,102 +1007,10 @@ namespace SpiritMod
             if (state == null)
                 return -1f;
 
-            try { return state.Duration; }
+            try { return state.InfiniteDuration ? -1f : state.Duration; }
             catch { return -1f; }
         }
 
-        private static float ReadBuffDurationSeconds(SkillState state)
-        {
-            if (state == null)
-                return -1f;
-
-            try { return state.Duration; }
-            catch { return -1f; }
-        }
-        private static bool TryMatchStatusDisplay(
-    StatusComponent status,
-    string id,
-    out float remainingSeconds)
-        {
-            remainingSeconds = 0f;
-
-            if (status == null || string.IsNullOrEmpty(id))
-                return false;
-
-            var displays = status.StatusDisplays_C;
-            if (displays == null)
-                return false;
-
-            if (!displays.ContainsKey(id))
-                return false;
-
-            var state = displays[id];
-            if (state == null)
-            {
-                remainingSeconds = -1f;
-                return true;
-            }
-
-            remainingSeconds = state.Duration <= 0f ? -1f : state.Duration;
-            return true;
-        }
-
-        // Token: 0x06000058 RID: 88 RVA: 0x0000407C File Offset: 0x0000227C
-        private static void CheckEffectDurations(
-    Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> displays,
-    Il2CppSystem.Collections.Generic.List<SkillStatus> effects,
-    ref bool foundAny,
-    ref float maxRemaining)
-        {
-            if (displays == null || effects == null || effects.Count == 0)
-                return;
-
-            for (int i = 0; i < effects.Count; i++)
-            {
-                SkillStatus effect = effects[i];
-
-                if (effect == null)
-                    continue;
-
-                string id = effect.Id;
-
-                if (string.IsNullOrEmpty(id))
-                    continue;
-
-                foreach (var pair in displays)
-                {
-                    string activeId = pair.key?.ToString() ?? "";
-
-                    if (string.IsNullOrEmpty(activeId))
-                        continue;
-
-                    if (!activeId.Equals(id, StringComparison.OrdinalIgnoreCase) &&
-                        !activeId.Contains(id) &&
-                        !id.Contains(activeId))
-                    {
-                        continue;
-                    }
-
-                    foundAny = true;
-
-                    var state = pair.value;
-
-                    if (state != null)
-                    {
-                        float duration = state.Duration;
-
-                        if (duration > maxRemaining)
-                            maxRemaining = duration;
-                    }
-                    else
-                    {
-                        maxRemaining = -1f;
-                    }
-
-                    return;
-                }
-            }
-        }
         // Token: 0x06000059 RID: 89 RVA: 0x000040EC File Offset: 0x000022EC
         public static bool TryGetBuffRemainingSecondsForSlot(PlayerController player, int slot, out float remainingSeconds)
         {

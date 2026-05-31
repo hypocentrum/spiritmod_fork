@@ -60,8 +60,8 @@ namespace SpiritMod
             }
         }
 
-        private static void DumpDictionary<TValue>(
-            Il2CppSystem.Collections.Generic.Dictionary<string, TValue> dictionary,
+        private static void DumpDictionary(
+            Il2CppSystem.Collections.Generic.Dictionary<string, StatusEffectState> dictionary,
             StringBuilder sb)
         {
             if (dictionary == null)
@@ -79,7 +79,7 @@ namespace SpiritMod
                 sb.Append(pair.key != null ? pair.key.ToString() : "<null key>");
                 sb.Append(" => ");
 
-                object value = pair.value;
+                var value = pair.value;
                 if (value == null)
                 {
                     sb.AppendLine("<null value>");
@@ -93,6 +93,8 @@ namespace SpiritMod
                 TryAppendProperty(value, "Stackable", sb);
                 TryAppendProperty(value, "Time", sb);
                 TryAppendProperty(value, "Timer", sb);
+                TryAppendProperty(value, "IsToggle", sb);
+                TryAppendProperty(value, "InfiniteDuration", sb);
 
                 sb.AppendLine();
             }
