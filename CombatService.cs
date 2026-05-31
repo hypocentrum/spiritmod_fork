@@ -252,17 +252,18 @@ namespace SpiritMod
             string id = cfg.Id;
             return (!string.IsNullOrEmpty(id) && id.Contains("Summon")) || (int)cfg.ExclusiveType == 4;
         }
-
-        // Token: 0x06000042 RID: 66 RVA: 0x00003494 File Offset: 0x00001694
         public static bool IsMountSkill(SkillConfig cfg)
         {
-            if (cfg == null)
-            {
-                return false;
-            }
-            string displayName = cfg.DisplayName;
-            System.Collections.Generic.List<string> mountList = ["Summon Mount"];
-            return (!string.IsNullOrEmpty(displayName) && mountList.Contains(displayName));
+            if (cfg == null) return false;
+
+            string displayName = cfg.DisplayName ?? "";
+            string id = cfg.Id ?? "";
+
+            return displayName == "Summon Mount"
+                || displayName == "Gryphon Riding"
+                || displayName == "Combat Mount"
+                || id == "GryphonRiding"
+                || id == "CombatMounted";
         }
 
         // Token: 0x06000043 RID: 67 RVA: 0x000034CC File Offset: 0x000016CC
@@ -436,16 +437,15 @@ namespace SpiritMod
                                     bool flag = anySkill.IsHealing || cfg.TreatAsHealing[i];
                                     if (!healingOnly || flag)
                                     {
-                                        if (CombatService.IsMountSkill(config))
+                                        if (CombatService.IsMountSkill(config) && !CombatService.IsGryphonRidingSkill(config))
                                         {
                                             SummoningComponent summoning = baseUnitController.Summoning;
                                             if ((summoning != null && summoning.IsMounting) || !SummonService.HasAlivePrimarySummon(player))
                                             {
-                                                //goto IL_1FB;
                                                 continue;
                                             }
                                         }
-                                        
+
                                         if ((!CombatService.IsSummonSkill(config) || !SummonService.IsSlotSatisfied(player, cfg, i)) && (!CombatService.IsManagedBuffSlot(cfg, i, config) || !CombatService.ShouldSkipBuffCast(player, anySkill, cfg, i)))
                                         {
                                             int castType = (int)config.CastType;
@@ -672,7 +672,16 @@ namespace SpiritMod
         // Token: 0x06000052 RID: 82 RVA: 0x00003E44 File Offset: 0x00002044
         private static bool IsManagedBuffSlot(BotConfig cfg, int slot, SkillConfig config)
         {
-            string[] listBuffs = ["Haste", "Benediction", "Divine Grace", "Conviction Aura", "Vitality Aura", "Defiance Aura"];
+            string[] listBuffs =
+[
+    "Haste",
+    "Benediction",
+    "Divine Grace",
+    "Conviction Aura",
+    "Vitality Aura",
+    "Defiance Aura",
+    "Gryphon Riding"
+];
             if (config == null)
                 return false;
             if (CombatService.IsBuffSkill(config) || CombatService.IsBondSkill(config) || listBuffs.Contains(config.DisplayName))
@@ -686,7 +695,16 @@ namespace SpiritMod
                    slot < cfg.TreatAsBuff.Length &&
                    cfg.TreatAsBuff[slot];
         }
+        private static bool IsGryphonRidingSkill(SkillConfig cfg)
+        {
+            if (cfg == null) return false;
 
+            string name = cfg.DisplayName ?? "";
+            string id = cfg.Id ?? "";
+
+            return name.Equals("Gryphon Riding", StringComparison.OrdinalIgnoreCase)
+                || id.Contains("Gryphon", StringComparison.OrdinalIgnoreCase);
+        }
         // Token: 0x06000053 RID: 83 RVA: 0x00003E7C File Offset: 0x0000207C
         private static bool ShouldSkipBuffCast(PlayerController player, SkillState skillState, BotConfig cfg, int slot)
         {
@@ -708,11 +726,23 @@ namespace SpiritMod
             
             return flag && num > CombatService.GetBuffRefreshLeadSeconds(cfg, slot);
         }
-
-        // Token: 0x06000054 RID: 84 RVA: 0x00003EE5 File Offset: 0x000020E5
         public static bool IsPermanentBuff(SkillConfig cfg)
         {
-            return !(cfg == null) && (CombatService.HasOnlyPermanentEffects(cfg.StatusEffects) || CombatService.HasOnlyPermanentEffects(cfg.SelfStatusEffects));
+            if (cfg == null) return false;
+
+            string id = cfg.Id ?? "";
+            string name = cfg.DisplayName ?? "";
+
+            if (id.Contains("Gryphon", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("Gryphon Riding", StringComparison.OrdinalIgnoreCase)
+                || id.Equals("CombatMounted", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CombatMounted", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return CombatService.HasOnlyPermanentEffects(cfg.StatusEffects)
+                || CombatService.HasOnlyPermanentEffects(cfg.SelfStatusEffects);
         }
 
         // Token: 0x06000055 RID: 85 RVA: 0x00003F0C File Offset: 0x0000210C
@@ -831,7 +861,19 @@ namespace SpiritMod
                 // - skill id: Conviction
                 // - display name: Conviction Aura
                 // - status effect ids: Might, SpearQuicken, HolyShield, Endure, etc.
+                string skillId = config.Id ?? "";
+                string skillName = config.DisplayName ?? "";
 
+                if (skillId.Contains("Gryphon", StringComparison.OrdinalIgnoreCase)
+                    || skillName.Equals("Gryphon Riding", StringComparison.OrdinalIgnoreCase))
+                {
+                    CombatService.MatchBuffIdInAllKnownStatusDictionaries(
+                        status,
+                        "CombatMounted",
+                        ref foundAny,
+                        ref maxRemaining
+                    );
+                }
                 CombatService.MatchBuffIdInAllKnownStatusDictionaries(
                         status,
                         config.Id,
