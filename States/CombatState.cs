@@ -102,12 +102,17 @@ namespace SpiritMod.States
                     try
                     {
                         ctx.Status.SkillAttempts++;
-                        CombatService.TryCastSkill(player, ctx.Config, ctx.Status);
 
-                        StartDamageWatch(
-                            currentTarget,
-                            ctx.Status.TargetHealth,
-                            "skill cast");
+                        bool casted = CombatService.TryCastSkill(player, ctx.Config, ctx.Status);
+
+                        if (casted)
+                        {
+                            StartDamageWatch(currentTarget, ctx.Status.TargetHealth, "skill cast");
+
+                            // Important: prevent same-tick auto attack from overwriting skill input
+                            ctx.Status.AttackTimer = ctx.Config.AttackInterval;
+                            return;
+                        }
                     }
                     catch (Exception ex)
                     {

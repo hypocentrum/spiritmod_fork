@@ -52,7 +52,7 @@ namespace SpiritMod.Guards
 				try
 				{
 					string currentMapName = TeleporterService.GetCurrentMapName();
-					if (currentMapName != null && currentMapName != ctx.Config.FarmingMapName)
+					if (!IsSameMap(currentMapName, ctx.Config.FarmingMapName))
 					{
 						DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(63, 2);
 						defaultInterpolatedStringHandler.AppendLiteral("[Bot] Wrong zone detected: '");
@@ -74,5 +74,25 @@ namespace SpiritMod.Guards
 				return false;
 			}
 		}
-	}
+
+        private static string NormalizeMapName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return string.Empty;
+
+            int bracket = name.IndexOf(" [", StringComparison.Ordinal);
+            if (bracket >= 0)
+                name = name.Substring(0, bracket);
+
+            return name.Trim();
+        }
+
+        private static bool IsSameMap(string current, string target)
+        {
+            return string.Equals(
+                NormalizeMapName(current),
+                NormalizeMapName(target),
+                StringComparison.OrdinalIgnoreCase);
+        }
+    }
 }

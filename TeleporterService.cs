@@ -224,8 +224,8 @@ namespace SpiritMod
 			return result;
 		}
 
-		// Token: 0x06000019 RID: 25 RVA: 0x00002854 File Offset: 0x00000A54
-		public static void InvalidateCache()
+        // Token: 0x06000019 RID: 25 RVA: 0x00002854 File Offset: 0x00000A54
+        public static void InvalidateCache()
 		{
 			TeleporterService._mapsCached = false;
 			TeleporterService._mapKeys = null;
