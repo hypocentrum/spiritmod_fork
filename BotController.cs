@@ -163,13 +163,9 @@ namespace SpiritMod
 					if (CombatService.TryCastSkill(player, BotController._config, BotController._status))
 					{
 						Il2CppSystem.Collections.Generic.List<int> missingSummonSlots = SummonService.GetMissingSummonSlots(player, BotController._config);
-						DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(35, 2);
-						defaultInterpolatedStringHandler.AppendLiteral("[Bot] ");
-						defaultInterpolatedStringHandler.AppendFormatted(context);
-						defaultInterpolatedStringHandler.AppendLiteral(": summoning (missing slots: ");
-						defaultInterpolatedStringHandler.AppendFormatted(string.Join(",", missingSummonSlots));
-						defaultInterpolatedStringHandler.AppendLiteral(")");
-						MelonLogger.Msg(defaultInterpolatedStringHandler.ToStringAndClear());
+						MelonLogger.Msg($"[Bot] {context}: summoning (missing slots: )");
+
+
 					}
 				}
 				catch (Exception ex)

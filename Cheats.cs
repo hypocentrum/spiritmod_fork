@@ -89,8 +89,11 @@ namespace SpiritMod
 					}
 					else
 					{
-						save.UnlockAllWaypoints_S();
-						MelonLogger.Msg("[Cheats] Unlocked all waypoints");
+						foreach(var map in App.Game.Map.Maps)
+                        {
+                            save.UnlockWaypoint_S(map.GetInstanceID());
+                            MelonLogger.Msg($"[Cheats] Unlocked {map.GetInstanceID()}:{map.name} waypoint ({map.Id})");
+                        }
 					}
 				}
 			}

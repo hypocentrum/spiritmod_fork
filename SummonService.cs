@@ -25,6 +25,7 @@ namespace SpiritMod
 			try
 			{
                 Il2CppSystem.Collections.Generic.Dictionary<string, int> cachedSummons = SummonService.GetCachedSummons(player);
+                Il2CppSystem.Collections.Generic.Dictionary<string, int> cachedClones = SummonService.GetCachedClones(player);
                 System.Collections.Generic.List<SkillData> assignedSkillList = CombatService.GetAssignedSkillList(player);
 				if (assignedSkillList == null)
 				{
@@ -55,22 +56,27 @@ namespace SpiritMod
 									{
 										if (config.ExclusiveType == (SkillCategory)4)
 										{
+											MelonLogger.Msg($"Skill {config.DisplayName} : is summon type, checking aliveness.");
 											if (!flag)
 											{
 												flag = true;
 												if (!SummonService.HasAlivePrimarySummon(player))
-												{
-													SummonService._missingSlots.Add(i);
+                                                {
+													MelonLogger.Msg($"Skill {config.DisplayName} : is not alive.");
+                                                    SummonService._missingSlots.Add(i);
 												}
 											}
 										}
 										else
-										{
-											string monsterKey = SummonService.ExtractMonsterKey(config.DisplayName);
-											int num2 = Math.Max(1, anySkill.BaseLevel);
-											if (SummonService.CountMatchingSummons(cachedSummons, monsterKey) < num2)
-											{
-												SummonService._missingSlots.Add(i);
+                                        {
+                                            string monsterKey = SummonService.ExtractMonsterKey(config.DisplayName);
+                                            MelonLogger.Msg($"Skill {config.DisplayName} : is not summon, extracting monster key {monsterKey}.");
+                                            int num2 = config.DisplayName == "Shadow Seal" ? 4 : Math.Max(1, anySkill.BaseLevel);
+											int num1 = SummonService.CountMatchingSummons(cachedClones, monsterKey);
+                                            if (num1 < num2)
+                                            {
+                                                MelonLogger.Msg($"Skill {config.DisplayName} : missing {num2 - num1}/{cachedClones.Count} clone adding missing slot.");
+                                                SummonService._missingSlots.Add(i);
 											}
 										}
 									}
@@ -134,7 +140,7 @@ namespace SpiritMod
 								{
 									Il2CppSystem.Collections.Generic.Dictionary<string, int> cachedSummons = SummonService.GetCachedSummons(player);
 									string monsterKey = SummonService.ExtractMonsterKey(config.DisplayName);
-									int num = Math.Max(1, anySkill.BaseLevel);
+									int num = config.DisplayName == "Shadow Seal" ? 4 : Math.Max(1, anySkill.BaseLevel);
 									result = (SummonService.CountMatchingSummons(cachedSummons, monsterKey) >= num);
 								}
 							}
@@ -183,16 +189,28 @@ namespace SpiritMod
 			SummonService._cachedSummons = SummonService.ScanPlayerSummons(player);
 			SummonService._cachedFrame = frameCount;
 			return SummonService._cachedSummons;
-		}
+        }
+        private static Il2CppSystem.Collections.Generic.Dictionary<string, int> GetCachedClones(PlayerController player)
+        {
+            int frameCount = Time.frameCount;
+            if (frameCount == SummonService._cachedFrame && SummonService._cachedClones != null)
+            {
+                return SummonService._cachedClones;
+            }
+            SummonService._cachedClones = SummonService.ScanPlayerClones(player);
+            SummonService._cachedFrame = frameCount;
+            return SummonService._cachedClones;
+        }
 
-		// Token: 0x06000105 RID: 261 RVA: 0x0000CDE0 File Offset: 0x0000AFE0
-		private static Il2CppSystem.Collections.Generic.Dictionary<string, int> ScanPlayerSummons(PlayerController player)
+        // Token: 0x06000105 RID: 261 RVA: 0x0000CDE0 File Offset: 0x0000AFE0
+        private static Il2CppSystem.Collections.Generic.Dictionary<string, int> ScanPlayerSummons(PlayerController player)
 		{
 			Il2CppSystem.Collections.Generic.Dictionary<string, int> dictionary = new ();
 			try
 			{
 				BaseUnitController baseUnitController = player.Cast<BaseUnitController>();
 				Il2CppArrayBase<MonsterController> il2CppArrayBase = Object.FindObjectsOfType<MonsterController>();
+				
 				if (il2CppArrayBase == null)
 				{
 					return dictionary;
@@ -215,18 +233,18 @@ namespace SpiritMod
 										if (CombatService.IsTargetAlive(monsterController.Cast<BaseUnitController>()))
 										{
 											string text = monsterController.DisplayName ?? "???";
-											if (dictionary.ContainsKey(text))
-											{
-												Il2CppSystem.Collections.Generic.Dictionary<string, int> dictionary2 = dictionary;
-												string key = text;
-												int num = dictionary2[key];
-												dictionary2[key] = num + 1;
-											}
-											else
-											{
-												dictionary[text] = 1;
-											}
-										}
+                                            if (dictionary.ContainsKey(text))
+                                            {
+                                                Il2CppSystem.Collections.Generic.Dictionary<string, int> dictionary2 = dictionary;
+                                                string key = text;
+                                                int num = dictionary2[key];
+                                                dictionary2[key] = num + 1;
+                                            }
+                                            else
+                                            {
+                                                dictionary[text] = 1;
+                                            }
+                                        }
 									}
 								}
 							}
@@ -236,15 +254,56 @@ namespace SpiritMod
 					{
 					}
 				}
-			}
+            }
 			catch
 			{
 			}
 			return dictionary;
 		}
 
-		// Token: 0x06000106 RID: 262 RVA: 0x0000CEFC File Offset: 0x0000B0FC
-		private static string ExtractMonsterKey(string skillDisplayName)
+        private static Il2CppSystem.Collections.Generic.Dictionary<string, int> ScanPlayerClones(PlayerController player)
+        {
+            Il2CppSystem.Collections.Generic.Dictionary<string, int> dictionary = new();
+            try
+            {
+                BaseUnitController baseUnitController = player.Cast<BaseUnitController>();
+                Il2CppArrayBase<MonsterController> il2CppArrayBase = Object.FindObjectsOfType<MonsterController>();
+                if (il2CppArrayBase == null)
+                {
+                    MelonLogger.Msg($"No player scanned");
+                    return dictionary;
+                }
+
+				int found = 0;
+
+                for (int i = 0; i < il2CppArrayBase.Length; i++)
+                {
+                    try
+                    {
+                        MonsterController monsterController = il2CppArrayBase[i];
+                        string text = monsterController.DisplayName ?? "???";
+						if (text != player.DisplayName)
+						{
+                            MelonLogger.Msg($"Player {text} is not the same as {player.DisplayName} and will not be stored");
+                            continue;
+                        }
+                        found = +1;
+                    }
+                    catch
+                    {
+                    }
+                }
+				dictionary[player.DisplayName] = found > 0 ? found - 1 : 0;
+                MelonLogger.Msg($"Player stored : {found}");
+            }
+            catch
+            {
+            }
+            return dictionary;
+        }
+
+        // Token: 0x06000106 RID: 262 RVA: 0x0000CEFC File Offset: 0x0000B0FC
+        private static string ExtractMonsterKey(string skillDisplayName)
 		{
 			if (string.IsNullOrEmpty(skillDisplayName))
 			{
@@ -253,8 +312,12 @@ namespace SpiritMod
 			if (skillDisplayName.StartsWith("Summon ", StringComparison.OrdinalIgnoreCase))
 			{
 				return skillDisplayName.Substring("Summon ".Length).Trim();
-			}
-			return skillDisplayName;
+            }
+            if (skillDisplayName.StartsWith("Shadow Seal", StringComparison.OrdinalIgnoreCase))
+            {
+                return App.Player.DisplayName;
+            }
+            return skillDisplayName;
 		}
 
 		// Token: 0x06000107 RID: 263 RVA: 0x0000CF34 File Offset: 0x0000B134
@@ -277,9 +340,10 @@ namespace SpiritMod
 
 		// Token: 0x040000E2 RID: 226
 		private static Il2CppSystem.Collections.Generic.Dictionary<string, int> _cachedSummons;
+        private static Il2CppSystem.Collections.Generic.Dictionary<string, int> _cachedClones;
 
-		// Token: 0x040000E3 RID: 227
-		private static int _cachedFrame = -1;
+        // Token: 0x040000E3 RID: 227
+        private static int _cachedFrame = -1;
 
 		// Token: 0x040000E4 RID: 228
 		private static readonly Il2CppSystem.Collections.Generic.List<int> _missingSlots = new Il2CppSystem.Collections.Generic.List<int>();

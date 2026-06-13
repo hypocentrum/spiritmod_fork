@@ -250,7 +250,7 @@ namespace SpiritMod
                 return false;
             }
             string id = cfg.Id;
-            return (!string.IsNullOrEmpty(id) && id.Contains("Summon")) || (int)cfg.ExclusiveType == 4;
+            return (!string.IsNullOrEmpty(id) && (id.Contains("Summon") || cfg.DisplayName.Contains("Shadow Seal"))) || (int)cfg.ExclusiveType == 4;
         }
         public static bool IsMountSkill(SkillConfig cfg)
         {
