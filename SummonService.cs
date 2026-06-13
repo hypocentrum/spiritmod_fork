@@ -68,13 +68,16 @@ namespace SpiritMod
 										}
 										else if (config.DisplayName == "Shadow Seal")
                                         {
-											int num1 = SummonService.CountAlivePlayerClones(player);
-                                            if (num1 < maxCloneLimit)
+                                            int cloneCount = SummonService.CountAlivePlayerClones(player);
+
+                                            if (cloneCount < 3)
                                             {
                                                 SummonService._missingSlots.Add(i);
-											}
-										}
-									}
+                                            }
+
+                                            continue;
+                                        }
+                                    }
 								}
 							}
 						}
@@ -132,11 +135,19 @@ namespace SpiritMod
 									result = SummonService.HasAlivePrimarySummon(player);
 								}
 								else
-								{
-									Il2CppSystem.Collections.Generic.Dictionary<string, int> cachedSummons = SummonService.GetCachedSummons(player);
-									string monsterKey = SummonService.ExtractMonsterKey(config.DisplayName);
-									int num = config.DisplayName == "Shadow Seal" ? 4 : Math.Max(1, anySkill.BaseLevel);
-									result = (SummonService.CountMatchingSummons(cachedSummons, monsterKey) >= num);
+                                {
+									if (config.DisplayName == "Shadow Seal")
+									{
+										result = SummonService.CountAlivePlayerClones(player) >= 3;
+									}
+									else
+                                    {
+                                        Il2CppSystem.Collections.Generic.Dictionary<string, int> cachedSummons = SummonService.GetCachedSummons(player);
+                                        string monsterKey = SummonService.ExtractMonsterKey(config.DisplayName);
+                                        int num = config.DisplayName == "Shadow Seal" ? 3 : Math.Max(1, anySkill.BaseLevel);
+                                        result = (SummonService.CountMatchingSummons(cachedSummons, monsterKey) >= num);
+
+                                    }
 								}
 							}
 						}

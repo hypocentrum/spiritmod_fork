@@ -12,7 +12,7 @@ namespace SpiritMod.States
             get { return BotState.Combat; }
         }
 
-        private const float NoDamageAfterActionTimeout = 3f;
+        private const float NoDamageAfterActionTimeout = 5f;
         private const float BlacklistDurationSeconds = 60f;
 
         private float _dashEvadeCooldownTimer;
@@ -201,7 +201,7 @@ namespace SpiritMod.States
                 return;
 
             // Do not restart the 3-second timer every frame/action for the same target.
-            // Otherwise the timer never reaches 3 seconds.
+            // Otherwise the timer never reaches 5 seconds.
             if (_waitingForDamageAfterAction && _trackedTarget == target)
                 return;
 
@@ -241,7 +241,7 @@ namespace SpiritMod.States
                 return false;
 
             string reason =
-                "Target HP did not decrease within 3 seconds after " +
+                "Target HP did not decrease within 5 seconds after " +
                 (_lastDamageAction ?? "attack/castskill") +
                 ".";
 
