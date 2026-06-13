@@ -164,8 +164,6 @@ namespace SpiritMod
 					{
 						Il2CppSystem.Collections.Generic.List<int> missingSummonSlots = SummonService.GetMissingSummonSlots(player, BotController._config);
 						MelonLogger.Msg($"[Bot] {context}: summoning (missing slots: )");
-
-
 					}
 				}
 				catch (Exception ex)

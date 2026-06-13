@@ -1,10 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using Il2Cpp;
+﻿using Il2Cpp;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Il2CppSystem.Collections.Generic;
 using MelonLoader;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Playables;
 using Object = UnityEngine.Object;
 
 namespace SpiritMod
@@ -24,8 +25,8 @@ namespace SpiritMod
 			SummonService._missingSlots.Clear();
 			try
 			{
+				int maxCloneLimit = 3;
                 Il2CppSystem.Collections.Generic.Dictionary<string, int> cachedSummons = SummonService.GetCachedSummons(player);
-                Il2CppSystem.Collections.Generic.Dictionary<string, int> cachedClones = SummonService.GetCachedClones(player);
                 System.Collections.Generic.List<SkillData> assignedSkillList = CombatService.GetAssignedSkillList(player);
 				if (assignedSkillList == null)
 				{
@@ -56,26 +57,20 @@ namespace SpiritMod
 									{
 										if (config.ExclusiveType == (SkillCategory)4)
 										{
-											MelonLogger.Msg($"Skill {config.DisplayName} : is summon type, checking aliveness.");
 											if (!flag)
 											{
 												flag = true;
 												if (!SummonService.HasAlivePrimarySummon(player))
                                                 {
-													MelonLogger.Msg($"Skill {config.DisplayName} : is not alive.");
                                                     SummonService._missingSlots.Add(i);
 												}
 											}
 										}
-										else
+										else if (config.DisplayName == "Shadow Seal")
                                         {
-                                            string monsterKey = SummonService.ExtractMonsterKey(config.DisplayName);
-                                            MelonLogger.Msg($"Skill {config.DisplayName} : is not summon, extracting monster key {monsterKey}.");
-                                            int num2 = config.DisplayName == "Shadow Seal" ? 4 : Math.Max(1, anySkill.BaseLevel);
-											int num1 = SummonService.CountMatchingSummons(cachedClones, monsterKey);
-                                            if (num1 < num2)
+											int num1 = SummonService.CountAlivePlayerClones(player);
+                                            if (num1 < maxCloneLimit)
                                             {
-                                                MelonLogger.Msg($"Skill {config.DisplayName} : missing {num2 - num1}/{cachedClones.Count} clone adding missing slot.");
                                                 SummonService._missingSlots.Add(i);
 											}
 										}
@@ -190,17 +185,6 @@ namespace SpiritMod
 			SummonService._cachedFrame = frameCount;
 			return SummonService._cachedSummons;
         }
-        private static Il2CppSystem.Collections.Generic.Dictionary<string, int> GetCachedClones(PlayerController player)
-        {
-            int frameCount = Time.frameCount;
-            if (frameCount == SummonService._cachedFrame && SummonService._cachedClones != null)
-            {
-                return SummonService._cachedClones;
-            }
-            SummonService._cachedClones = SummonService.ScanPlayerClones(player);
-            SummonService._cachedFrame = frameCount;
-            return SummonService._cachedClones;
-        }
 
         // Token: 0x06000105 RID: 261 RVA: 0x0000CDE0 File Offset: 0x0000AFE0
         private static Il2CppSystem.Collections.Generic.Dictionary<string, int> ScanPlayerSummons(PlayerController player)
@@ -261,45 +245,68 @@ namespace SpiritMod
 			return dictionary;
 		}
 
-        private static Il2CppSystem.Collections.Generic.Dictionary<string, int> ScanPlayerClones(PlayerController player)
+        public static int CountAlivePlayerClones(PlayerController player)
         {
-            Il2CppSystem.Collections.Generic.Dictionary<string, int> dictionary = new();
+            int count = 0;
+
             try
             {
-                BaseUnitController baseUnitController = player.Cast<BaseUnitController>();
-                Il2CppArrayBase<MonsterController> il2CppArrayBase = Object.FindObjectsOfType<MonsterController>();
-                if (il2CppArrayBase == null)
-                {
-                    MelonLogger.Msg($"No player scanned");
-                    return dictionary;
-                }
+                if (player == null) return 0;
 
-				int found = 0;
+                BaseUnitController self = player.Cast<BaseUnitController>();
+                if (self == null) return 0;
 
-                for (int i = 0; i < il2CppArrayBase.Length; i++)
+                string playerName = "";
+                try { playerName = self.DisplayName ?? ""; } catch { }
+
+                var units = UnityEngine.Object.FindObjectsOfType<BaseUnitController>();
+                if (units == null) return 0;
+
+                for (int i = 0; i < units.Length; i++)
                 {
+                    BaseUnitController unit = units[i];
+                    if (unit == null) continue;
+                    if (unit.GetInstanceID() == self.GetInstanceID()) continue;
+                    if (!CombatService.IsTargetAlive(unit)) continue;
+
+                    bool sameName = false;
                     try
                     {
-                        MonsterController monsterController = il2CppArrayBase[i];
-                        string text = monsterController.DisplayName ?? "???";
-						if (text != player.DisplayName)
-						{
-                            MelonLogger.Msg($"Player {text} is not the same as {player.DisplayName} and will not be stored");
-                            continue;
-                        }
-                        found = +1;
+                        string unitName = unit.DisplayName ?? "";
+                        sameName =
+                            !string.IsNullOrEmpty(playerName) &&
+                            unitName.Equals(playerName, StringComparison.OrdinalIgnoreCase);
                     }
-                    catch
+                    catch { }
+
+                    bool ownedByPlayer = false;
+                    try
                     {
+                        var summoning = unit.Summoning;
+                        var summoner = summoning != null ? summoning.Summoner : null;
+                        ownedByPlayer =
+                            summoner != null &&
+                            summoner.GetInstanceID() == self.GetInstanceID();
                     }
+                    catch { }
+
+                    bool isClone = false;
+                    try
+                    {
+                        isClone = unit.IsPlayerClone();
+                    }
+                    catch { }
+
+                    if ((isClone || sameName) && (ownedByPlayer || sameName))
+                        count++;
                 }
-				dictionary[player.DisplayName] = found > 0 ? found - 1 : 0;
-                MelonLogger.Msg($"Player stored : {found}");
             }
-            catch
+            catch (Exception ex)
             {
+                MelonLogger.Warning("[Summon] CountAlivePlayerClones failed: " + ex.Message);
             }
-            return dictionary;
+
+            return count;
         }
 
         // Token: 0x06000106 RID: 262 RVA: 0x0000CEFC File Offset: 0x0000B0FC
@@ -340,7 +347,6 @@ namespace SpiritMod
 
 		// Token: 0x040000E2 RID: 226
 		private static Il2CppSystem.Collections.Generic.Dictionary<string, int> _cachedSummons;
-        private static Il2CppSystem.Collections.Generic.Dictionary<string, int> _cachedClones;
 
         // Token: 0x040000E3 RID: 227
         private static int _cachedFrame = -1;
